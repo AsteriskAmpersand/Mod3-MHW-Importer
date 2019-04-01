@@ -10,6 +10,7 @@ import bmesh
 import array
 import os
 from mathutils import Vector, Matrix
+from collections import OrderedDict
 try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
 except:
@@ -38,12 +39,13 @@ class BlenderImporterAPI(ModellingAPI):
       
     @staticmethod
     def createArmature(armature, context):
-        miniscene = {}
+        miniscene = OrderedDict()
         BlenderImporterAPI.createRootNub(miniscene)
         for ix, bone in enumerate(armature):
             if "Bone.%03d"%ix not in miniscene:
                 BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
         miniscene["Bone.%03d"%255].name = '%s Armature'%processPath(context.path)
+        BlenderImporterAPI.linkChildren(miniscene)
         context.armature = miniscene
         return
         
@@ -306,6 +308,19 @@ class BlenderImporterAPI(ModellingAPI):
                     blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
                 blenderObject.vertex_groups[groupName].add([vertex], weight, 'ADD')
         return
+    
+    @staticmethod
+    def linkChildren(miniscene):
+        for ex in range(len(miniscene)-1):
+            e = miniscene["Bone.%03d"%ex]
+            if e["child"] != 255:
+                c = miniscene["Bone.%03d"%e["child"]].constraints.new('CHILD_OF')
+                for prop in ["location","rotation","scale"]:
+                    for axis in ["x","y","z"]:
+                        c.__setattr__("use_%s_%s"%(prop,axis), False)
+                c.target=e
+                c.active=False
+            del e["child"]
     
 # =============================================================================
 # UV and Texture Handling

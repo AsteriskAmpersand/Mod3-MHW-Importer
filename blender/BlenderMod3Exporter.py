@@ -78,6 +78,7 @@ class BlenderExporterAPI(ModellingAPI):
         root = options.validateSkeletonRoot(rootEmpty)
         protoskeleton = []
         BlenderExporterAPI.recursiveEmptyDeconstruct(255, root, protoskeleton, skeletonMap, options.errorHandler)
+        for bone in protoskeleton: bone["bone"]["child"] = bone["bone"]["child"]()
         options.executeErrors()
         return [bone["bone"] for bone in protoskeleton], \
                 [bone["LMatrix"] for bone in protoskeleton], \
@@ -112,8 +113,10 @@ class BlenderExporterAPI(ModellingAPI):
     def recursiveEmptyDeconstruct(pix, current, storage, skeletonMap, errorHandler):
         for child in current.children:
             bone = {"name":child.name}
-            for prop in ["boneFunction","child","unkn2"]:
+            for prop in ["boneFunction","unkn2"]:
                 BlenderExporterAPI.verifyLoad(child, prop, errorHandler, bone)
+            #Check Child Constraint
+            bone["child"] = lambda: BlenderExporterAPI.getTarget(child, skeletonMap, errorHandler)
             LMatrix= child.matrix_local.copy()
             AMatrix= LMatrix.inverted()*(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
             bone["x"], bone["y"], bone["z"] = (LMatrix[i][3] for i in range(3))
@@ -123,7 +126,21 @@ class BlenderExporterAPI(ModellingAPI):
             storage.append({"bone":bone,"AMatrix":AMatrix,"LMatrix":LMatrix})
             skeletonMap[child.name] = cix
             BlenderExporterAPI.recursiveEmptyDeconstruct(cix, child, storage, skeletonMap, errorHandler)
+       
+    @staticmethod
+    def getTarget(bone, skeletonMap, errorHandler):
+        constraints = [b for b in bone.constraints if b.type == "CHILD_OF"]
+        if not len(constraints):
+            return 255
+        constraint = constraints[0]
+        if len(constraints)>1:
+            bone["child"]=constraint
+            for c in constraints[1:]:
+                errorHandler.propertyDuplicate("child",bone,c)
+            constraint = bone["child"]
+        return skeletonMap[constraint.target.name] if constraint.target else skeletonMap[bone.name]
         
+    
     @staticmethod
     def parseMesh(mesh, materials, skeletonMap, options):
         options.errorHandler.setMeshName(mesh.name)
