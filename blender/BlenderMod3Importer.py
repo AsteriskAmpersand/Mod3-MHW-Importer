@@ -314,11 +314,11 @@ class BlenderImporterAPI(ModellingAPI):
         for ex in range(len(miniscene)-1):
             e = miniscene["Bone.%03d"%ex]
             if e["child"] != 255:
-                c = miniscene["Bone.%03d"%e["child"]].constraints.new('CHILD_OF')
+                c = e.constraints.new('CHILD_OF')
                 for prop in ["location","rotation","scale"]:
                     for axis in ["x","y","z"]:
                         c.__setattr__("use_%s_%s"%(prop,axis), False)
-                c.target=e
+                c.target=miniscene["Bone.%03d"%e["child"]]
                 c.active=False
             del e["child"]
     
