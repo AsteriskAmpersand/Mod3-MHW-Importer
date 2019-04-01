@@ -35,7 +35,7 @@ class ExportMOD3(Operator, ExportHelper):
         description = "Overwrites all meshparts' explicit LODs to the highest LOD.",
         default = True)
     coerce_fourth = BoolProperty(
-        name = "Coerce 4th negative Weight",
+        name = "Coerce 4th Negative Weight",
         description = "Forces non-explicit 4 weight vertices into a 4 weight blocktype.",
         default = True)
     
@@ -53,7 +53,7 @@ class ExportMOD3(Operator, ExportHelper):
                         "Vertex Weight Groups Irregularities",
                         "Weight Count Errors",
                         "Non Triangular Faces"]
-    levelDefaults = ["Warning","Error","Ignore","Error","Ignore","Error","Warning","Warning"]
+    levelDefaults = ["Warning","Error","Ignore","Error","Ignore","Warning","Warning","Error"]
     propString = """EnumProperty(
                     name = name,
                     description = desc,

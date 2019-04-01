@@ -19,7 +19,7 @@ nativePC = Path(r"E:\Program Files (x86)\Steam\steamapps\common\Monster Hunter W
 filelist = list(Path(chunkPath).rglob("*.mod3"))
 
 randomChoices = []
-for i in range(100):
+for i in range(50):
     r=randint(0,len(filelist)-1)
     while r in randomChoices: r=randint(0,len(filelist)-1)
     randomChoices.append(r)
@@ -42,12 +42,12 @@ for r in randomChoices:
         continue    
     try: bpy.ops.custom_import.import_mhw_mod3(filepath=model1,**options)
     except:
-        errors.append("Problem importing %s"%file.name)
+        errors.append("Problem re-importing %s"%file.name)
         continue  
     model2 = str(base.joinpath("Modded-"+file.name))
     try: bpy.ops.custom_export.export_mhw_mod3(filepath=model2)
     except:
-        errors.append("Problem exporting %s"%file.name)
+        errors.append("Problem re-exporting %s"%file.name)
         continue          
     if not filecmp.cmp(model1, model2):
         errors.append("Changes on %s when cycling."%(file.name))
