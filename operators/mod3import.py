@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Mar  6 14:09:29 2019
+
+@author: AsteriskAmpersand
+"""
+import bpy
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty, BoolProperty
+from bpy.types import Operator
+
+from ..mod3 import Mod3ImporterLayer as Mod3IL
+from ..blender import BlenderMod3Importer as Api
+from ..common import FileLike as FL
+
+
+class Context():
+    def __init__(self, path, meshes, armature):
+        self.path = path
+        self.meshes = meshes
+        self.armature = armature
+
+class ImportMOD3(Operator, ImportHelper):
+    bl_idname = "custom_import.import_mhw_mod3"
+    bl_label = "Load MHW MOD3 file (.mod3)"
+    bl_options = {'REGISTER', 'PRESET', 'UNDO'}
+ 
+    # ImportHelper mixin class uses this
+    filename_ext = ".mod3"
+    filter_glob = StringProperty(default="*.mod3", options={'HIDDEN'}, maxlen=255)
+
+    clear_scene = BoolProperty(
+        name = "Clear scene before import.",
+        description = "Clears all contents before importing",
+        default = True)
+    high_lod = BoolProperty(
+        name = "Only import high LOD parts.",
+        description = "Skip meshparts with low level of detail.",
+        default = True)
+    import_header = BoolProperty(
+        name = "Import File Header.",
+        description = "Imports file headers as scene properties.",
+        default = True)
+    import_skeleton = BoolProperty(
+        name = "Import Skeleton.",
+        description = "Imports the skeleton as an armature.",
+        default = True)
+    import_meshparts = BoolProperty(
+        name = "Import Meshparts.",
+        description = "Imports mesh parts as meshes.",
+        default = True)
+    import_unknown_mesh_props = BoolProperty(
+        name = "Import Unknown Mesh Properties.",
+        description = "Imports the Unknown section of the mesh collection as scene property.",
+        default = True)
+    import_textures = BoolProperty(
+        name = "Import Textures.",
+        description = "Imports texture as specified by mrl3.",
+        default = True)
+    texture_path = StringProperty(
+        name = "Texture Source",
+        description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
+        default = "")
+    preserve_weight = BoolProperty(
+        name = "Preserve Split Weights.",
+        description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
+        default = False)
+
+    def execute(self,context):
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass
+        bpy.ops.object.select_all(action='DESELECT')
+        Mod3File = FL.FileLike(open(self.properties.filepath,'rb').read())
+        BApi = Api.BlenderImporterAPI()
+        options = self.parseOptions()
+        blenderContext = Context(self.properties.filepath,None,None)
+        Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)     
+        bpy.ops.object.select_all(action='DESELECT')
+        #bpy.ops.object.mode_set(mode='OBJECT')
+        #bpy.context.area.type = 'INFO'
+        return {'FINISHED'}
+    
+    def parseOptions(self):
+        options = {}
+        if self.clear_scene:
+            options["Clear"]=True
+        if self.high_lod:
+            options["High LOD"]=True
+        if self.import_header:
+            options["Scene Header"]=True
+        if self.import_skeleton:
+            options["Armature"]=True
+        if self.import_meshparts:
+            options["Mesh Parts"]=True
+        if self.import_unknown_mesh_props:
+            options["Mesh Unknown Properties"]=True
+        if self.preserve_weight:
+            options["Split Weights"]=True
+        if self.high_lod:
+            options["Only Highest LOD"]=True
+        if self.import_skeleton and self.import_meshparts and not self.preserve_weight:
+            options["Skeleton Modifier"]=True
+        if self.import_textures:
+            options["Import Textures"]=self.texture_path
+            #Figure how to pass chunk path
+        return options
+    
+def menu_func_import(self, context):
+    self.layout.operator(ImportMOD3.bl_idname, text="MHW MOD3 (.mod3)")
