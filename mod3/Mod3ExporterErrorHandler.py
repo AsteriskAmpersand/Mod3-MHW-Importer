@@ -106,8 +106,8 @@ class ErrorHandler():
                         "MeshProperty":[0]*36,
                         "MeshPropertyCount":0, "boneMapCount":0xFFFFFFF,
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
-                        "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":0,
-                        "TrailingData":[],
+                        "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":[0]*39,
+                        "TrailingData":[], "material":None,
                         "visibleCondition":0,"lod":0xFFFF,"blockLabel":None,
                         "boneremapid":0,    
                         }
