@@ -146,9 +146,9 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.setMeshName(mesh.name)
         meshProp = {}
         if options.setHighestLoD:
-            mesh["lod"] = 65535
+            mesh.data["lod"] = 0xFFFF
         for prop in ["unkn","visibleCondition","lod","unkn2","unkn3","blockLabel",
-                    "boneremapid","unkn9"]  :
+                    "boneremapid","unkn9", "material"]  :
             BlenderExporterAPI.verifyLoad(mesh.data, prop, options.errorHandler, meshProp)
         meshProp["blocktype"] = BlenderExporterAPI.invertBlockLabel(meshProp["blockLabel"], options.errorHandler)
         groupName = lambda x: mesh.vertex_groups[x].name
