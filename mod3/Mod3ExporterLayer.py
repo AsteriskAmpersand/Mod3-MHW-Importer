@@ -8,13 +8,13 @@ Created on Thu Mar 14 00:15:18 2019
 try:
     from ..mod3 import Mod3
     from ..mod3 import Mod3VertexBuffers as Mod3Vert
-    from ..mod3.Mod3ExporterErrorHandler import ErrorHandler
+    from ..mod3.Mod3ExporterErrorHandler import ErrorHandler, UnexportableError
 except:
     import sys
     sys.path.insert(0, r'..\mod3')
     import Mod3
     import Mod3VertexBuffers as Mod3Vert
-    from Mod3ExporterErrorHandler import ErrorHandler
+    from Mod3ExporterErrorHandler import ErrorHandler, UnexportableError
 
 class WeightCountError(Exception):
     pass
@@ -73,12 +73,15 @@ class ModelToMod3():
         self.options = ExporterSettings(Api, options)
     
     def execute(self, context):
-        fileHeader, meshData, trailingData, headerMaterials = self.api.getSceneHeaders(self.options)
-        groupStuff = {"groupProperties":[0 for i in range(8*fileHeader["groupCount"])]}
-        skeleton,lmatrices,amatrices,bonenames = self.api.getSkeletalStructure(self.options)
-        meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
-        self.analyzeMeshparts(meshparts)
-        self.options.errorHandler.displayErrors()
+        try:
+            fileHeader, meshData, trailingData, headerMaterials = self.api.getSceneHeaders(self.options)
+            groupStuff = {"groupProperties":[0 for i in range(8*fileHeader["groupCount"])]}
+            skeleton,lmatrices,amatrices,bonenames = self.api.getSkeletalStructure(self.options)
+            meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
+            self.analyzeMeshparts(meshparts)
+            self.options.errorHandler.displayErrors()
+        except UnexportableError as e:
+            return
         self.model.construct(fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, meshData, trailingData)
         file = open(context,"wb")
         file.write(self.model.serialize())

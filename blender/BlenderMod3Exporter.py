@@ -47,7 +47,7 @@ class BlenderExporterAPI(ModellingAPI):
     def displayErrors(errors):
         if errors:
             print(errors)
-            BlenderExporterAPI.showMessageBox("Warnings Raised check them in Window > Toggle_System_Console", title = "Warnings and Error Log")
+            BlenderExporterAPI.showMessageBox("Warnings And Errors have been Raised, check them in Window > Toggle_System_Console", title = "Warnings and Error Log")
 # =============================================================================
 # Main Exporter Calls
 # =============================================================================
