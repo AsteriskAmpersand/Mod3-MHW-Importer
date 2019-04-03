@@ -7,14 +7,11 @@ Created on Thu Mar 28 22:15:37 2019
 
 from collections import Counter, OrderedDict
     
-class BlocktypeIncompatibleError(Exception):
-    pass
 class UnhandledErrors(Exception):
     pass
 class UnexportableError(Exception):
     pass
-class ElevatedWarning(Exception):
-    pass
+
 
 class ErrorHandler():
     def __init__(self, api, propertyLevels, coerce):
@@ -82,7 +79,7 @@ class ErrorHandler():
         self.__setattr__(self.blocktypeLevel,True)
         if self.blocktypeLevel != "Ignore":
             self.MessageList.append((self.meshname, 
-                    """%s: Declared blocklabel is incompatible with mesh. Enable flexible blocklabel inference, remove blocklabel from mesh properties or set blocklabel to %s"""%(self.blocktypeLevel, sugestion)
+                    """%s: Declared blocklabel is incompatible with mesh. Lower blocktype errors to warning to allow overwriting explicit blocklabels, remove blocklabel from mesh properties or set blocklabel to %s"""%(self.blocktypeLevel, sugestion)
                     ))
     def vertexCountOverflow(self):
         self.Error = True
