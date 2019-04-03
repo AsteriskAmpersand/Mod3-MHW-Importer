@@ -2,7 +2,8 @@
 Blender Mod3 Import-Exporter for Monster Hunter World
 
 # Documentation
-Documentation on functionality can be found on https://github.com/Ezekial711/MonsterHunterWorldModding/wiki/Asterisk's-Plugin-Features.
+Documentation on functionality can be found on https://github.com/Ezekial711/MonsterHunterWorldModding/wiki/Asterisk's-Plugin-Features.  
+
 Additionaly under Asterisk's Plugin Notes are notes on the format that are not explained on the research template and cover advanced functionality.
 
 # Installation  
