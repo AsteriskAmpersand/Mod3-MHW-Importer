@@ -81,6 +81,7 @@ class ModelToMod3():
             self.analyzeMeshparts(meshparts)
             self.options.errorHandler.displayErrors()
         except UnexportableError as e:
+            self.api.showMessageBox("Export Process failed due to an Error. Check the cause in Window > Toggle_System_Console")
             return
         self.model.construct(fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, meshData, trailingData)
         file = open(context,"wb")
