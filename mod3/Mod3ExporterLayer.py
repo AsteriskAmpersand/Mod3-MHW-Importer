@@ -149,7 +149,7 @@ class ModelToMod3():
     def decideMinimumBlocktype(self, properties):
         search = (properties["uvs"],properties["weights"],properties["colour"])
         if search not in self.invertedBlocklist:
-            self.options.errorHandler.BlocktypeImpossibleError(search)
+            self.options.errorHandler.BlocktypeImpossible(search)
         return self.invertedBlocklist[search]
     
     @staticmethod
