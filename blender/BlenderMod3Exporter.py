@@ -78,7 +78,7 @@ class BlenderExporterAPI(ModellingAPI):
         root = options.validateSkeletonRoot(rootEmpty)
         protoskeleton = []
         BlenderExporterAPI.recursiveEmptyDeconstruct(255, root, protoskeleton, skeletonMap, options.errorHandler)
-        for bone in protoskeleton: bone["bone"]["child"] = bone["bone"]["child"]()
+        for bone in protoskeleton: bone["bone"]["child"] = skeletonMap[bone["bone"]["child"]] if bone["bone"]["child"] in skeletonMap else 255
         options.executeErrors()
         return [bone["bone"] for bone in protoskeleton], \
                 [bone["LMatrix"] for bone in protoskeleton], \
@@ -116,7 +116,7 @@ class BlenderExporterAPI(ModellingAPI):
             for prop in ["boneFunction","unkn2"]:
                 BlenderExporterAPI.verifyLoad(child, prop, errorHandler, bone)
             #Check Child Constraint
-            bone["child"] = lambda: BlenderExporterAPI.getTarget(child, skeletonMap, errorHandler)
+            bone["child"] = BlenderExporterAPI.getTarget(child, errorHandler)
             LMatrix= child.matrix_local.copy()
             AMatrix= LMatrix.inverted()*(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
             bone["x"], bone["y"], bone["z"] = (LMatrix[i][3] for i in range(3))
@@ -128,17 +128,17 @@ class BlenderExporterAPI(ModellingAPI):
             BlenderExporterAPI.recursiveEmptyDeconstruct(cix, child, storage, skeletonMap, errorHandler)
        
     @staticmethod
-    def getTarget(bone, skeletonMap, errorHandler):
+    def getTarget(bone, errorHandler):
         constraints = [b for b in bone.constraints if b.type == "CHILD_OF"]
         if not len(constraints):
-            return 255
+            return None
         constraint = constraints[0]
         if len(constraints)>1:
             bone["child"]=constraint
             for c in constraints[1:]:
                 errorHandler.propertyDuplicate("child",bone,c)
             constraint = bone["child"]
-        return skeletonMap[constraint.target.name] if constraint.target else skeletonMap[bone.name]
+        return constraint.target.name if constraint.target else bone.name
         
     
     @staticmethod
