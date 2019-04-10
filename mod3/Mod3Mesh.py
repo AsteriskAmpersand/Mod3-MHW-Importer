@@ -140,7 +140,7 @@ class Mod3Mesh():
     
     @staticmethod
     def unifiedWeightFunction(zippedWeightBones):
-        keys = set([bone for bone, weight in zippedWeightBones if bone!=0])
+        keys = set([bone for bone, weight in zippedWeightBones])# if bone!=0])
         return {key:max(min(sum([weight for bone, weight in zippedWeightBones if bone == key]),1.0),0.0) for key in keys}         
     
     @staticmethod
