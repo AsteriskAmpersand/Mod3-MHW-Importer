@@ -33,6 +33,10 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Clear scene before import.",
         description = "Clears all contents before importing",
         default = True)
+    maximize_clipping = BoolProperty(
+        name = "Maximizes clipping distance.",
+        description = "Maximizes clipping distance to be able to see all of the model at once.",
+        default = True)
     high_lod = BoolProperty(
         name = "Only import high LOD parts.",
         description = "Skip meshparts with low level of detail.",
@@ -86,6 +90,8 @@ class ImportMOD3(Operator, ImportHelper):
         options = {}
         if self.clear_scene:
             options["Clear"]=True
+        if self.maximize_clipping:
+            options["Max Clip"]=True
         if self.high_lod:
             options["High LOD"]=True
         if self.import_header:

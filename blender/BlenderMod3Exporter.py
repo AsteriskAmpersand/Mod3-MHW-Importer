@@ -182,7 +182,7 @@ class BlenderExporterAPI(ModellingAPI):
                 faces += options.polyfaces(face)
             else:
                 faces.append({v:vert for v,vert in zip(["v1","v2","v3"],face.vertices)})
-        if len(faces)>65535:
+        if len(faces)>4294967295:
             options.errorHandler.faceCountOverflow()
         meshProp["materialIdx"] = options.updateMaterials(meshProp,materials)
         return {"mesh":pymesh, "faces":faces, "properties":meshProp, "meshname":mesh.name}
