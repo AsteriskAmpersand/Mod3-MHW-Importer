@@ -89,7 +89,7 @@ class ErrorHandler():
     def faceCountOverflow(self):
         self.Error = True
         self.MessageList.append((self.meshname,
-                """Error: Face Count exceeds hard coded limit of 65535 faces."""
+                """Error: Face Count exceeds hard coded limit of 4294967295 faces."""
                 ))
     def propertyDuplicate(self, propertyName, storage, prop):
         self.__setattr__(self.propertyLevel,True)

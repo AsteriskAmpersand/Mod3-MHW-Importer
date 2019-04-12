@@ -59,7 +59,8 @@ class Mod3ToModel():
             excecute.append(lambda c: self.setMeshProperties(c))
         if "Skeleton Modifier" in options:
             excecute.append(lambda c: self.linkArmatureMesh(c))
-        excecute.append(lambda c: self.maximizeClipping(c))
+        if "Max Clip" in options:
+            excecute.append(lambda c: self.maximizeClipping(c))
         #Max clipping distance?
         return excecute
     
