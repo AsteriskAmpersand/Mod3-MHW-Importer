@@ -39,8 +39,6 @@ class Mod3ToModel():
             
     def parseOptions(self, options):
         excecute = []
-        if "Override Defaults" in options:
-            excecute.append(lambda c: self.overrideMeshDefaults(c))
         if "Clear" in options:
             excecute.append(lambda c: self.clearScene(c))
         if "Scene Header" in options:
@@ -63,11 +61,13 @@ class Mod3ToModel():
             excecute.append(lambda c: self.linkArmatureMesh(c))
         if "Max Clip" in options:
             excecute.append(lambda c: self.maximizeClipping(c))
+        if "Override Defaults" in options:
+            excecute.append(lambda c: self.overrideMeshDefaults(c))
         #Max clipping distance?
         return excecute
     
     def overrideMeshDefaults(self, c):
-        c.setDefaults = True
+        self.api.overrideMeshDefaults(c)
     
     def setScene(self,c):
         self.api.setScene(self.model.sceneProperties(),c)

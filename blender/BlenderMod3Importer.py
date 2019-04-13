@@ -110,8 +110,6 @@ class BlenderImporterAPI(ModellingAPI):
             blenderMesh.update()
             meshObjects.append(blenderObject)
         context.meshes = meshObjects
-        if meshObjects and context.setDefaults:
-            BlenderImporterAPI.setWorldMeshDefault((meshObjects[0].data))
         BlenderImporterAPI.dbg.write("Meshparts Created\n")
         
     @staticmethod
@@ -156,6 +154,11 @@ class BlenderImporterAPI(ModellingAPI):
                 BlenderImporterAPI.dbg.write("\tAssigned Texture to Model\n")
             except Exception as e:
                 pass
+            
+    @staticmethod       
+    def overrideMeshDefaults(context):
+        if context.meshes:
+            BlenderImporterAPI.setWorldMeshDefault((context.meshes[0].data))
         
     @staticmethod
     def maximizeClipping(context):
