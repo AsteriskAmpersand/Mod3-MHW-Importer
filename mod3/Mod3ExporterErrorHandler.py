@@ -99,6 +99,7 @@ class ErrorHandler():
                 message = (self.meshname,message)
             self.MessageList.append(message)
         
+        
     propertyDefaults = {"boneFunction":512, "child":255,
                         "MeshProperty":[0]*36,
                         "MeshPropertyCount":0, "boneMapCount":0xFFFFFFF,
@@ -108,7 +109,12 @@ class ErrorHandler():
                         "visibleCondition":0,"lod":0xFFFF,"blockLabel":None,
                         "boneremapid":0,    
                         }
-    
+    def attemptLoadDefaults(self, defaults, source):
+        for prop in defaults:
+            if "DefaultMesh"+prop in source:
+                self.propertyDefaults[prop]=source["DefaultMesh"+prop]
+        return
+        
     def propertyMissing(self, propertyName):
         if "MeshProperty" in propertyName and "Count" not in propertyName:
             propertyName = "MeshProperty"
@@ -124,6 +130,7 @@ class ErrorHandler():
                     "tangent":(0,0,0,127),
                     "colour":(0,0,0,255)
                 }
+    
     def verifyLoadLoop(self, field, customVert, blenderVert, loopArray, mesh):
         if blenderVert.index not in loopArray:
             self.__setattr__(self.loopLevel,True)
