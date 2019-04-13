@@ -109,7 +109,9 @@ class BlenderImporterAPI(ModellingAPI):
             BlenderImporterAPI.dbg.write("\tMeshpart Loaded\n")
             blenderMesh.update()
             meshObjects.append(blenderObject)
-        context.meshes = meshObjects            
+        context.meshes = meshObjects
+        if meshObjects and context.setDefaults:
+            BlenderImporterAPI.setWorldMeshDefault((meshObjects[0].data))
         BlenderImporterAPI.dbg.write("Meshparts Created\n")
         
     @staticmethod
@@ -231,6 +233,11 @@ class BlenderImporterAPI(ModellingAPI):
     @staticmethod
     def mod3ToBlenderColour(mod3Colour):
         return (mod3Colour.Red/255.0,mod3Colour.Green/255.0,mod3Colour.Blue/255.0,mod3Colour.Alpha/255.0)
+    
+    @staticmethod
+    def setWorldMeshDefault(mesh):
+        BlenderImporterAPI.parseProperties({"DefaultMesh-"+prop:mesh[prop] for prop in ModellingAPI.MeshDefaults},bpy.context.scene.__setitem__)
+            
 
 # =============================================================================
 # Skeleton Methods

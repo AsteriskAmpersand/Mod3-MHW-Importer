@@ -88,6 +88,7 @@ class BlenderExporterAPI(ModellingAPI):
     @staticmethod
     def getMeshparts(options, boneNames, materials):
         options.errorHandler.setSection("Meshes")
+        options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
         meshes = sorted([o for o in bpy.context.scene.objects if o.type=="MESH"], key=lambda x: x.data.name)
         meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) for mesh in meshes]
         options.validateMaterials(materials)

@@ -19,6 +19,7 @@ class Context():
         self.path = path
         self.meshes = meshes
         self.armature = armature
+        self.setDefaults = False
 
 class ImportMOD3(Operator, ImportHelper):
     bl_idname = "custom_import.import_mhw_mod3"
@@ -65,6 +66,10 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
         default = "")
+    override_defaults = BoolProperty(
+        name = "Override Mesh Properties.",
+        description = "Overrides program defaults with default properties from the first mesh in the file.",
+        default = False)
     preserve_weight = BoolProperty(
         name = "Preserve Split Weights.",
         description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
@@ -110,6 +115,8 @@ class ImportMOD3(Operator, ImportHelper):
             options["Skeleton Modifier"]=True
         if self.import_textures:
             options["Import Textures"]=self.texture_path
+        if self.override_defaults:
+            options["Override Defaults"]=self.texture_path
             #Figure how to pass chunk path
         return options
     
