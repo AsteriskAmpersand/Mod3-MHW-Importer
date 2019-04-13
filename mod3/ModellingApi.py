@@ -46,3 +46,6 @@ class ModellingAPI():
         
     def getMeshparts(self, options):
         raise NotImplemented
+        
+    def overrideMeshDefaults(self, c):
+        raise NotImplemented
