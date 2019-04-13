@@ -111,8 +111,8 @@ class ErrorHandler():
                         }
     def attemptLoadDefaults(self, defaults, source):
         for prop in defaults:
-            if "DefaultMesh"+prop in source:
-                self.propertyDefaults[prop]=source["DefaultMesh"+prop]
+            if "DefaultMesh-"+prop in source:
+                self.propertyDefaults[prop]=source["DefaultMesh-"+prop]
         return
         
     def propertyMissing(self, propertyName):
