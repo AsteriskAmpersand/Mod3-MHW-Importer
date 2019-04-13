@@ -67,7 +67,7 @@ class ImportMOD3(Operator, ImportHelper):
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
         default = "")
     override_defaults = BoolProperty(
-        name = "Override Mesh Properties.",
+        name = "Override Default Mesh Properties.",
         description = "Overrides program defaults with default properties from the first mesh in the file.",
         default = False)
     preserve_weight = BoolProperty(
