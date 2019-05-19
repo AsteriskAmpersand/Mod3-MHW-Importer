@@ -61,9 +61,7 @@ class ErrorHandler():
     def setSection(self, sectionName):
         if self.MessageList:
             self.displayErrors()
-            raise UnhandledErrors("""Unhandled Error Log when switching sections. 
-                                  Something has gone terribly wrong, contact *&#7932 on Discord, AsteriskAmpersand on Github or NexusMods.
-                                  This error shouldn't be visible under normal operation.""")
+            raise UnhandledErrors("""Unhandled Error Log when switching sections. Something has gone terribly wrong, contact *&#7932 on Discord, AsteriskAmpersand on Github or NexusMods. This error shouldn't be visible under normal operation.""")
         self.meshname = None
         self.section = sectionName
         self.MessageList = []
@@ -71,10 +69,9 @@ class ErrorHandler():
     def BlocktypeImpossible(self, requirements):
         self.Error = True
         self.MessageList.append((self.meshname, 
-                """Error: Properties combination are not compatible with any of Capcom blocktypes.
-                UV:%d, Weights:%d, Colour:%d
-                """%(requirements))
+                """Error: Properties combination are not compatible with any of Capcom blocktypes. UV:%d, Weights:%d, Colour:%d"""%(requirements))
                 )
+        self.verify()
     def blocktypeIncompatible(self, sugestion):
         self.__setattr__(self.blocktypeLevel,True)
         if self.blocktypeLevel != "Ignore":
