@@ -118,25 +118,28 @@ class Mod3Mesh():
         if currentOffset % 2:
             raise ValueError("Uneven face offset")
         self.Header.faceOffset = currentOffset//2
-        return self.faceCount()*len(Mod3Face())+currentOffset
-       
+        return self.faceCount()*len(Mod3Face())+currentOffset    
+    
     @staticmethod
-    def splitWeightFunction(zippedWeightBones):
+    def splitWeightFunction(zippedWeightBones, slash = False):
         #Might Require Remembering Negative Weight Bones
         currentBones = Counter()
         result = {}
-        for bone, weight in zippedWeightBones[:-1]:
+        for ix, (bone, weight) in enumerate(zippedWeightBones[:-1]):
             if bone in currentBones:
-                bone = "(%03d,%d)"%(bone,currentBones[bone])
-                currentBones.update([bone])
+                bone,_ = "(%03d,%d%s)"%(bone,currentBones[bone],extension(ix)), currentBones.update([bone])
             else:
                 currentBones[bone]=1
-                bone = "(%03d,%d)"%(bone,0)
+                bone = "(%03d,%d%s)"%(bone,0,extension(ix)) 
             result[bone]=max(weight,0.0)
         bone, weight = zippedWeightBones[-1]
-        bone = "(%03d,%d)"%(bone, -1)
+        bone = "(%03d,%d%s)"%(bone, -1, extension(ix+1))
         result[bone]=max(weight,0.0)
         return result
+    
+    @staticmethod
+    def slashWeightFunction(zippedWeightBones):
+        return Mod3Mesh.splitWeightFunction(zippedWeightBones, slash = True)
     
     @staticmethod
     def unifiedWeightFunction(zippedWeightBones):
@@ -150,14 +153,19 @@ class Mod3Mesh():
                 baseDictionary[key] = [(ix, dictionary[key])]
             else:
                 baseDictionary[key] += [(ix, dictionary[key])]
-        
+
+    @staticmethod
+    def weightFunctionSelector(x): return {0:Mod3Mesh.unifiedWeightFunction, 
+                                            1:Mod3Mesh.splitWeightFunction,
+                                            2:Mod3Mesh.slashWeightFunction
+                                            }[x]
     def decomposeVertices(self, vertices, splitWeights):
         additionalFields = Mod3Vertex.blocklist[self.Header.blocktype]
         weightGroups = {}
         colour = []        
         if "weights" in additionalFields:
-            weightFunction = self.splitWeightFunction if splitWeights else self.unifiedWeightFunction
-            for ix, vertex in enumerate(vertices):              
+            weightFunction = self.weightFunctionSelector(splitWeights)
+            for ix, vertex in enumerate(vertices):
                 self.dictWeightAddition(weightGroups, weightFunction(list(zip(vertex.boneIds.boneIds,vertex.weights.weights))),ix)
         if "colour" in additionalFields:
             colour = [vertex.colour for vertex in vertices]
