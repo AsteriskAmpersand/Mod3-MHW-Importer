@@ -6,7 +6,7 @@ Created on Wed Mar  6 14:09:29 2019
 """
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 from ..mod3 import Mod3ImporterLayer as Mod3IL
@@ -66,13 +66,17 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
         default = "")
+    weight_format = EnumProperty(
+        name = "Weight Format",
+        description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
+        items = [("Group","Standard","Weights under the same bone are grouped",0),
+                  ("Split","Split Weight Notation","Mirrors the Mod3 separation of the same weight",1),
+                  ("Slash","Split-Slash Notation","As split weight but also conserves weight order",2),
+                  ],
+        default = "Group")
     override_defaults = BoolProperty(
         name = "Override Default Mesh Properties.",
         description = "Overrides program defaults with default properties from the first mesh in the file.",
-        default = False)
-    preserve_weight = BoolProperty(
-        name = "Preserve Split Weights.",
-        description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
         default = False)
 
     def execute(self,context):
@@ -107,17 +111,15 @@ class ImportMOD3(Operator, ImportHelper):
             options["Mesh Parts"]=True
         if self.import_unknown_mesh_props:
             options["Mesh Unknown Properties"]=True
-        if self.preserve_weight:
-            options["Split Weights"]=True
         if self.high_lod:
             options["Only Highest LOD"]=True
-        if self.import_skeleton and self.import_meshparts and not self.preserve_weight:
+        if self.import_skeleton and self.import_meshparts and self.weight_format == "Standard":
             options["Skeleton Modifier"]=True
         if self.import_textures:
             options["Import Textures"]=self.texture_path
         if self.override_defaults:
             options["Override Defaults"]=self.texture_path
-            #Figure how to pass chunk path
+        options["Split Weights"]=self.weight_format
         return options
     
 def menu_func_import(self, context):

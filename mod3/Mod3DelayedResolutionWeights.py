@@ -13,7 +13,7 @@ class UnclassedVertex(Exception):
 
 @total_ordering
 class BufferedWeight():
-    weightCaptureGroup = r"(.*)\( *([^,]*) *, *([-+]?[0-9]+) *\)$"
+    weightCaptureGroup = r"(.*)\( *([^,]*) *, *([-+]?[0-9]+)(/[0-9]+)? *\)$"
     def __init__(self, weightName,skeletonMap,weightVal):
         if weightName in skeletonMap:
             self.weight = weightVal
@@ -23,14 +23,17 @@ class BufferedWeight():
         group = re.match(self.weightCaptureGroup,weightName).group
         weightName = group(1)+group(2)
         weightIndex = int(group(3))
+        weightPosition = int(group(4).replace("/","")) if group(4) else 0
         self.weight = weightVal
         self.boneId = skeletonMap[weightName]
         self.sign = weightIndex == -1
-        
+        self.weightOrder = weightPosition        
             
     def __cmp__(self, bw):
         if self.sign != bw.sign:
             return 1 if self.sign else -1
+        if self.weightOrder != bw.weightOrder:
+            return 1 if self.weightOrder > bw.weightOrder else -1
         if self.boneId == bw.boneId:
             return 0
         else:

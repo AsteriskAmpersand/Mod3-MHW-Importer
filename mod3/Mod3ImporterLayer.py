@@ -48,10 +48,6 @@ class Mod3ToModel():
         if "Only Highest LOD" in options:
             excecute.append(lambda c: self.filterToHighestLOD(c))
         if "Mesh Parts" in options:
-            if "Split Weights" in options:
-                self.splitWeights = True
-            else:
-                self.splitWeights = False
             excecute.append(lambda c: self.createMeshParts(c))
             if "Import Textures" in options:
                 excecute.append(lambda c: self.importTextures(c, options["Import Textures"]))
@@ -63,6 +59,7 @@ class Mod3ToModel():
             excecute.append(lambda c: self.maximizeClipping(c))
         if "Override Defaults" in options:
             excecute.append(lambda c: self.overrideMeshDefaults(c))
+        self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
         #Max clipping distance?
         return excecute
     
