@@ -123,6 +123,7 @@ class Mod3Mesh():
     @staticmethod
     def splitWeightFunction(zippedWeightBones, slash = False):
         #Might Require Remembering Negative Weight Bones
+        extension = (lambda x: "/%d"%x) if slash else (lambda x: "")
         currentBones = Counter()
         result = {}
         for ix, (bone, weight) in enumerate(zippedWeightBones[:-1]):
