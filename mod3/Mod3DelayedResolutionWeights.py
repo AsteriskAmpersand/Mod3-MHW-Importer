@@ -19,6 +19,7 @@ class BufferedWeight():
             self.weight = weightVal
             self.boneId = skeletonMap[weightName]
             self.sign = 0
+            self.weightOrder = 0  
             return
         group = re.match(self.weightCaptureGroup,weightName).group
         weightName = group(1)+group(2)
