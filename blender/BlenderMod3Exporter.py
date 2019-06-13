@@ -66,9 +66,12 @@ class BlenderExporterAPI(ModellingAPI):
         materials = OrderedDict()
         for ix in range(header["materialCount"]):
             BlenderExporterAPI.verifyLoad(bpy.context.scene,"MaterialName%d"%ix,options.errorHandler,materials)
+        groupProperties = OrderedDict()
+        for ix in range(8*header["groupCount"]):
+            BlenderExporterAPI.verifyLoad(bpy.context.scene,"GroupProperty%d"%ix,options.errorHandler,groupProperties)
         options.executeErrors()
         #bpy.context.scene
-        return header, list(meshProps.values()), trail["TrailingData"], list(materials.values())
+        return header, list(meshProps.values()), list(groupProperties.values()), trail["TrailingData"], list(materials.values())
         
     @staticmethod
     def getSkeletalStructure(options):

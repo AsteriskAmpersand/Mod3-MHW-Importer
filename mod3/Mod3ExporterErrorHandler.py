@@ -99,6 +99,7 @@ class ErrorHandler():
         
     propertyDefaults = {"boneFunction":512, "child":255,
                         "MeshProperty":[0]*36,
+                        "GroupProperty":0,
                         "MeshPropertyCount":0, "boneMapCount":0xFFFFFFF,
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
                         "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":[0]*39,
@@ -115,6 +116,8 @@ class ErrorHandler():
     def propertyMissing(self, propertyName):
         if "MeshProperty" in propertyName and "Count" not in propertyName:
             propertyName = "MeshProperty"
+        if "GroupProperty" in propertyName and "Count" not in propertyName:
+            propertyName = "GroupProperty"
         self.__setattr__(self.propertyLevel,True)
         if self.propertyLevel != "Ignore":
             message = "%s: Missing Property %s, defaults to %s"%(self.propertyLevel, propertyName, str(self.propertyDefaults[propertyName]))
