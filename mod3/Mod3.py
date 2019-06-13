@@ -49,13 +49,13 @@ class Mod3():
         self.Header = self.Header()
         self.Header.construct(fileHeader)
         self.Skeleton = self.Skeleton(len(skeleton), None)
-        self.Skeleton.construct(skeleton,lmatrices,amatrices)#TODO
+        self.Skeleton.construct(skeleton,lmatrices,amatrices)
         self.GroupProperties = self.GroupProperties(self.Header.groupCount)
         self.GroupProperties.construct(groupStuff)
         self.Materials = self.Materials(len(materials))
         self.Materials.construct(materials)
         self.MeshParts = self.MeshParts(len(meshparts))
-        self.MeshParts.construct(meshparts, meshData)#TODO
+        self.MeshParts.construct(meshparts, meshData)
         self.Trailing = self.Trailing()
         self.Trailing.construct(trailingData)
         self.calculateCountsOffsets()
@@ -123,8 +123,8 @@ class Mod3():
         serialization+=self.Header.serialize()
         serialization+=self.pad(len(serialization),self.Header.boneOffset)
         serialization+=self.Skeleton.serialize()
-        #serialization+=self.pad(len(serialization),self.Header.groupOffset)
-        #serialization+=self.GroupProperties.serialize()
+        serialization+=self.pad(len(serialization),self.Header.groupOffset)
+        serialization+=self.GroupProperties.serialize()
         serialization+=self.pad(len(serialization),self.Header.materialNamesOffset)
         serialization+=self.Materials.serialize()
         serialization+=self.pad(len(serialization),self.Header.meshOffset)
@@ -136,6 +136,7 @@ class Mod3():
     def sceneProperties(self):
         sceneProp = self.Header.sceneProperties()
         sceneProp.update(self.Materials.sceneProperties())
+        sceneProp.update(self.GroupProperties.sceneProperties())
         sceneProp.update(self.Trailing.sceneProperties())
         #TODO - Separate properties per sections leave only Header, Materials and Trailing
         return sceneProp

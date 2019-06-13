@@ -70,10 +70,16 @@ class Mod3Materials(CS.Mod3Container):
 
 class Mod3GroupProperties(CS.PyCStruct):
     def __init__(self, propertyCount):
-        self.fields = OrderedDict([("groupProperties","uint32[%d]"%(propertyCount*8))])
+        self.fields = OrderedDict([("groupProperties","int32[%d]"%(propertyCount*8))])
         super().__init__()
     requiredProperties = {"groupProperties"}
+    
+    def construct(self, groupStuffList):
+        self.groupProperties = groupStuffList
         
+    def sceneProperties(self):
+        return {"GroupProperty%d"%(i):data
+                for i,data in enumerate(self.groupProperties)}      
 #Blind Data Remnants
 class GenericRemnants():
     def __init__(self):
