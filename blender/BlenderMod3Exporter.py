@@ -8,25 +8,58 @@ Created on Sun Mar 31 03:16:11 2019
 
 import bpy
 import math
+import os
+import sys
 from mathutils import Matrix
 from collections import OrderedDict
-   
+
 try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..mod3.Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
+    from ..blender.BlenderSupressor import SupressBlenderOps
     from ..common.crc import CrcJamcrc
 except:
-    import sys
     sys.path.insert(0, r'..\mod3')
     sys.path.insert(0, r'..\common')
+    sys.path.insert(0, r'..\blender')
     from Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from Mod3VertexBuffer import Mod3Vertex
     from ModellingApi import ModellingAPI, debugger
+    from BlenderSupressor import SupressBlenderOps
     from crc import CrcJamcrc
     
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
     
+class MeshClone():
+    def __init__(self, mesh):
+        self.original = mesh
+        #self.clone = None
+                   
+    def __enter__(self):
+        self.copy = self.original.copy()
+        bpy.context.scene.objects.link(self.copy)
+        bpy.context.scene.objects.active = self.copy
+        self.original.select = False
+        self.copy.select = True
+        bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True)
+        for mod in self.copy.modifiers:
+            try:
+                bpy.ops.object.modifier_apply(modifier = mod.name)
+            except Exception as e:
+                pass
+        self.copy.select = False
+        bpy.context.scene.objects.active = None
+        return self.copy
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if bpy.context.mode == "EDIT":
+            bpy.ops.object.mode_set(mode = 'OBJECT')
+        with SupressBlenderOps():
+            bpy.ops.object.delete({"selected_objects": self.copy})      
+        self.copyObject = None
+        return False
+
 import re
 class BlenderExporterAPI(ModellingAPI):
     MACHINE_EPSILON = 2**-19
@@ -146,49 +179,50 @@ class BlenderExporterAPI(ModellingAPI):
         
     
     @staticmethod
-    def parseMesh(mesh, materials, skeletonMap, options):
-        options.errorHandler.setMeshName(mesh.name)
-        meshProp = {}
-        if options.setHighestLoD:
-            mesh.data["lod"] = 0xFFFF
-        for prop in ["unkn","visibleCondition","lod","unkn2","unkn3","blockLabel",
-                    "boneremapid","unkn9", "material"]  :
-            BlenderExporterAPI.verifyLoad(mesh.data, prop, options.errorHandler, meshProp)
-        meshProp["blocktype"] = BlenderExporterAPI.invertBlockLabel(meshProp["blockLabel"], options.errorHandler)
-        groupName = lambda x: mesh.vertex_groups[x].name
-        loopNormals, loopTangents = BlenderExporterAPI.loopValues(mesh.data, options.splitNormals, options.errorHandler)
-        uvMaps = BlenderExporterAPI.uvValues(mesh.data, options.errorHandler)
-        colour = BlenderExporterAPI.colourValues(mesh, options.errorHandler)
-        pymesh = []
-        if len(mesh.data.vertices)>65535:
-            options.errorHandler.vertexCountOverflow()
-        for vertex in mesh.data.vertices:
-            vert = {}
-            vert["position"] = vertex.co
-            vert["weights"] = BlenderExporterAPI.weightHandling(vertex.groups, skeletonMap, groupName, options.errorHandler)
-            #Normal Handling
-            options.errorHandler.verifyLoadLoop("normal", vert, vertex, loopNormals, mesh)#vert["normal"] = loopNormals[vertex.index]
-            #Tangent Handling
-            options.errorHandler.verifyLoadLoop("tangent", vert, vertex, loopTangents, mesh)#vert["tangent"] = loopTangents[vertex.index]
-            #UV Handling
-            vert["uvs"] = [uvMap[vertex.index] if vertex.index in uvMap else options.errorHandler.missingUV(vertex.index, uvMap) for uvMap in uvMaps]
-            if not len(vert["uvs"]):
-                options.errorHandler.uvLayersMissing(vert)            
-            if len(vert["uvs"])>4:
-                options.errorHandler.uvCountExceeded(vert)
-            #Colour Handling if present
-            if colour:
-                options.errorHandler.verifyLoadLoop("colour", vert, vertex, colour, mesh)
-            pymesh.append(vert)
-        faces = []
-        for face in mesh.data.polygons:
-            if len(face.vertices)>3:
-                faces += options.polyfaces(face)
-            else:
-                faces.append({v:vert for v,vert in zip(["v1","v2","v3"],face.vertices)})
-        if len(faces)>4294967295:
-            options.errorHandler.faceCountOverflow()
-        meshProp["materialIdx"] = options.updateMaterials(meshProp,materials)
+    def parseMesh(basemesh, materials, skeletonMap, options):
+        options.errorHandler.setMeshName(basemesh.name)
+        with MeshClone(basemesh) as mesh:
+            meshProp = {}
+            if options.setHighestLoD:
+                mesh.data["lod"] = 0xFFFF
+            for prop in ["unkn","visibleCondition","lod","unkn2","unkn3","blockLabel",
+                        "boneremapid","unkn9", "material"]  :
+                BlenderExporterAPI.verifyLoad(mesh.data, prop, options.errorHandler, meshProp)
+            meshProp["blocktype"] = BlenderExporterAPI.invertBlockLabel(meshProp["blockLabel"], options.errorHandler)
+            groupName = lambda x: mesh.vertex_groups[x].name
+            loopNormals, loopTangents = BlenderExporterAPI.loopValues(mesh.data, options.splitNormals, options.errorHandler)
+            uvMaps = BlenderExporterAPI.uvValues(mesh.data, options.errorHandler)
+            colour = BlenderExporterAPI.colourValues(mesh, options.errorHandler)
+            pymesh = []
+            if len(mesh.data.vertices)>65535:
+                options.errorHandler.vertexCountOverflow()
+            for vertex in mesh.data.vertices:
+                vert = {}
+                vert["position"] = vertex.co
+                vert["weights"] = BlenderExporterAPI.weightHandling(vertex.groups, skeletonMap, groupName, options.errorHandler)
+                #Normal Handling
+                options.errorHandler.verifyLoadLoop("normal", vert, vertex, loopNormals, mesh)#vert["normal"] = loopNormals[vertex.index]
+                #Tangent Handling
+                options.errorHandler.verifyLoadLoop("tangent", vert, vertex, loopTangents, mesh)#vert["tangent"] = loopTangents[vertex.index]
+                #UV Handling
+                vert["uvs"] = [uvMap[vertex.index] if vertex.index in uvMap else options.errorHandler.missingUV(vertex.index, uvMap) for uvMap in uvMaps]
+                if not len(vert["uvs"]):
+                    options.errorHandler.uvLayersMissing(vert)            
+                if len(vert["uvs"])>4:
+                    options.errorHandler.uvCountExceeded(vert)
+                #Colour Handling if present
+                if colour:
+                    options.errorHandler.verifyLoadLoop("colour", vert, vertex, colour, mesh)
+                pymesh.append(vert)
+            faces = []
+            for face in mesh.data.polygons:
+                if len(face.vertices)>3:
+                    faces += options.polyfaces(face)
+                else:
+                    faces.append({v:vert for v,vert in zip(["v1","v2","v3"],face.vertices)})
+            if len(faces)>4294967295:
+                options.errorHandler.faceCountOverflow()
+            meshProp["materialIdx"] = options.updateMaterials(meshProp,materials)
         return {"mesh":pymesh, "faces":faces, "properties":meshProp, "meshname":mesh.name}
     
     @staticmethod

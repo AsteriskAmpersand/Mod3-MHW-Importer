@@ -78,6 +78,8 @@ class ExportMOD3(Operator, ExportHelper):
         options = self.parseOptions()
         Mod3EL.ModelToMod3(BApi, options).execute(self.properties.filepath)
         bpy.ops.object.select_all(action='DESELECT')
+        for ob in bpy.context.selected_objects:
+            ob.select = False
         #bpy.ops.object.mode_set(mode='OBJECT')
         #bpy.context.area.type = 'INFO'
         return {'FINISHED'}
