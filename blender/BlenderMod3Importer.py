@@ -111,14 +111,33 @@ class BlenderImporterAPI(ModellingAPI):
             meshObjects.append(blenderObject)
         context.meshes = meshObjects
         BlenderImporterAPI.dbg.write("Meshparts Created\n")
-        
+
+    @staticmethod
+    def clearSelection():
+        for ob in bpy.context.selected_objects:
+            ob.select = False
+     
     @staticmethod
     def linkArmatureMesh(context):
-        return
+        BlenderImporterAPI.clearSelection()
         armature = context.armature
         for ob in context.meshes:
-            ob.modifiers.new(name = armature.name, type='ARMATURE')
-            ob.modifiers[armature.name].object = armature
+            for bone in armature:
+                modifier = ob.modifiers.new(name = armature[bone].name, type='HOOK')
+                modifier.object = armature[bone]
+                modifier.vertex_group = armature[bone].name
+                modifier.falloff_type = "NONE"
+                if not modifier.vertex_group:
+                    ob.modifiers.remove(modifier)
+                else:
+                    bpy.context.scene.objects.active = ob
+                    ob.select = True
+                    bpy.ops.object.mode_set(mode = 'EDIT')
+                    bpy.ops.object.hook_reset(modifier = armature[bone].name)
+                    bpy.ops.object.mode_set(mode = 'OBJECT')
+                    ob.select = False
+                    bpy.context.scene.objects.active = None
+                    
         
     @staticmethod
     def clearScene(context):

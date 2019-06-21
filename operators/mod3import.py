@@ -113,7 +113,7 @@ class ImportMOD3(Operator, ImportHelper):
             options["Mesh Unknown Properties"]=True
         if self.high_lod:
             options["Only Highest LOD"]=True
-        if self.import_skeleton and self.import_meshparts and self.weight_format == "Standard":
+        if self.import_skeleton and self.import_meshparts and self.weight_format == "Group":
             options["Skeleton Modifier"]=True
         if self.import_textures:
             options["Import Textures"]=self.texture_path
