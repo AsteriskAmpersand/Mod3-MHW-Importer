@@ -20,9 +20,40 @@ except:
     
 def processPath(path):
     return os.path.splitext(os.path.basename(path))[0]
+
+class BoneGraph():
+    def __init__(self, armature):
+        self.bones = {}
+        self.boneParentage = {}
+        for ix, bone in enumerate(armature):
+            bonePoint = BonePoint("Bone.%03d"%ix, bone)
+            self.bones[ix] = bonePoint 
+            if bone["parentId"] in self.bones:
+                self.bones[bone["parentId"]].children.append(bonePoint)
+            else:
+                if bone["parentId"] not in self.boneParentage:
+                    self.boneParentage[bone["parentId"]]=[]
+                self.boneParentage[bone["parentId"]].append(bonePoint)
+        for parentId in self.boneParentage:
+            if parentId != 255:
+                self.bones[parentId].children += self.boneParentage[parentId]
+        self.roots = self.boneParentage[255]
+        
+    def root(self):
+        return self.roots
     
+class BonePoint():
+    def __init__(self, name, bone):
+        self.properties = bone["CustomProperties"]
+        self.name = name
+        self.lmatrix = BlenderImporterAPI.deserializeMatrix("LMatCol",bone)
+        self.pos = Vector((bone["x"],bone["y"],bone["z"]))
+        self.children = []
+    def children(self):
+        return self.children
+
 class BlenderImporterAPI(ModellingAPI):
-    MACHINE_EPSILON = 2**-19
+    MACHINE_EPSILON = 2**-16
     dbg = debugger()
     
 #=============================================================================
@@ -38,7 +69,7 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.parseProperties(meshProperties,bpy.context.scene.__setitem__)
       
     @staticmethod
-    def createArmature(armature, context):
+    def createEmptyTree(armature, context):
         miniscene = OrderedDict()
         BlenderImporterAPI.createRootNub(miniscene)
         for ix, bone in enumerate(armature):
@@ -47,10 +78,10 @@ class BlenderImporterAPI(ModellingAPI):
         miniscene["Bone.%03d"%255].name = '%s Armature'%processPath(context.path)
         BlenderImporterAPI.linkChildren(miniscene)
         context.armature = miniscene
-        return
-        
+        return   
+    
     @staticmethod
-    def createSkeleton(armature, context):#Skeleton
+    def createArmature(armature, context):#Skeleton
         filename = processPath(context.path)
         BlenderImporterAPI.dbg.write("Loading Armature\n")
         bpy.ops.object.select_all(action='DESELECT')
@@ -61,13 +92,14 @@ class BlenderImporterAPI(ModellingAPI):
         arm_ob.select = True
         arm_ob.show_x_ray = True
         bpy.context.scene.objects.active = arm_ob
-        
         blenderArmature.draw_type = 'STICK'
         bpy.ops.object.mode_set(mode='EDIT')
-        for ix, bone in enumerate(armature):
-            if "Bone.%03d"%ix not in blenderArmature:
-                BlenderImporterAPI.createBone(ix, bone, armature, blenderArmature)
+        
+        boneGraph = BoneGraph(armature)
+        for bone in boneGraph.root():
+            BlenderImporterAPI.createBone(blenderArmature, bone)
             #arm.pose.bones[ix].matrix
+            
         bpy.ops.object.editmode_toggle()
         BlenderImporterAPI.dbg.write("Loaded Armature\n")
         context.armature = arm_ob
@@ -118,7 +150,7 @@ class BlenderImporterAPI(ModellingAPI):
             ob.select = False
      
     @staticmethod
-    def linkArmatureMesh(context):
+    def linkEmptyTree(context):
         BlenderImporterAPI.clearSelection()
         armature = context.armature
         for ob in context.meshes:
@@ -137,7 +169,10 @@ class BlenderImporterAPI(ModellingAPI):
                     bpy.ops.object.mode_set(mode = 'OBJECT')
                     ob.select = False
                     bpy.context.scene.objects.active = None
-                    
+
+    @staticmethod
+    def linkArmature(context):
+        pass
         
     @staticmethod
     def clearScene(context):
@@ -203,8 +238,8 @@ class BlenderImporterAPI(ModellingAPI):
     def normalize(vector):
         factor = sum([v*v for v in vector])
         if not factor:
-            return vector
-        return tuple([v/factor for v in vector])
+            return Vector(vector)
+        return Vector([v/factor for v in vector])
         
 
 # =============================================================================
@@ -297,30 +332,27 @@ class BlenderImporterAPI(ModellingAPI):
         o.show_bounds = True
         BlenderImporterAPI.parseProperties(bone["CustomProperties"],o.__setitem__)
     
+    class DummyBone():
+        def __init__(self):
+            self.matrix = Matrix.Identity(4)
+            self.head = Vector([0,-1,0])
+            self.tail = Vector([0,0,0])
+            self.magnitude = 1
+    
     @staticmethod
-    def createBone(ix, bone, armature, blenderArmature):
-        blenderBone = blenderArmature.edit_bones.new("Bone.%03d"%ix)
-        blenderBone.use_inherit_rotation = False
-        blenderBone.use_local_location = False
-        blenderBone.use_inherit_scale = False
-        parent = bone["parentId"]
-        if parent != 255:
-            parentName = "Bone.%03d"%parent
-            if parentName not in blenderArmature.edit_bones:
-                BlenderImporterAPI.createBone(parent,armature[parent],armature,blenderArmature)
-            parentBone = blenderArmature.edit_bones[parentName]
-            blenderBone.parent = parentBone
-            head = parentBone.tail
-            localMatrix = BlenderImporterAPI.deserializeMatrix("LMatCol",armature[parent])
-        else:
-            head = Vector((0,0,0))
-            localMatrix = Matrix.Identity(4)
-        tail = (localMatrix*Vector((head[0],head[1],head[2],1)))[:3]
-        if tail == head:
-            tail += Vector((0,0,BlenderImporterAPI.MACHINE_EPSILON))
-        blenderBone.head = head
-        blenderBone.tail = tail
-        BlenderImporterAPI.parseProperties(bone["CustomProperties"],blenderBone.__setitem__)
+    def createBone(armature, obj, parent_bone = None):
+        bone = armature.edit_bones.new(obj.name)
+        bone.head = Vector([0, 0, 0])
+        bone.tail = Vector([0, 1, 0])#Vector([0, 1, 0])
+        if not parent_bone:
+            parent_bone = BlenderImporterAPI.DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
+        bone.matrix = parent_bone.matrix * obj.lmatrix
+        for child in obj.children:
+            nbone = BlenderImporterAPI.createBone(armature, child, bone)
+            nbone.parent = bone
+        BlenderImporterAPI.parseProperties(obj.properties,bone.__setitem__)
+        bone.tail -= Vector([0, 1, 0]) + Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
+        return bone
     
     @staticmethod
     def deserializeMatrix(baseString, properties):
