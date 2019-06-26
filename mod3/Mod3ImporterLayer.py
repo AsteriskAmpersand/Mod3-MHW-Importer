@@ -43,8 +43,10 @@ class Mod3ToModel():
             excecute.append(lambda c: self.clearScene(c))
         if "Scene Header" in options:
             excecute.append(lambda c: self.setScene(c))
-        if "Armature" in options:
-            excecute.append(lambda c: self.createArmature(c))
+        if "Skeleton" in options:
+            skeletonOperator = {"EmptyTree":self.createEmptyTree, 
+                        "Armature":self.createArmature}[options["Skeleton"]]
+            excecute.append(lambda c: skeletonOperator(c))
         if "Only Highest LOD" in options:
             excecute.append(lambda c: self.filterToHighestLOD(c))
         if "Mesh Parts" in options:
@@ -54,7 +56,9 @@ class Mod3ToModel():
         if "Mesh Unknown Properties" in options:
             excecute.append(lambda c: self.setMeshProperties(c))
         if "Skeleton Modifier" in options:
-            excecute.append(lambda c: self.linkArmatureMesh(c))
+            linkOperator = {"EmptyTree":self.linkEmptyTree, 
+                        "Armature":self.linkArmature}[options["Skeleton"]]
+            excecute.append(lambda c: linkOperator(c))
         if "Max Clip" in options:
             excecute.append(lambda c: self.maximizeClipping(c))
         if "Override Defaults" in options:
@@ -72,6 +76,9 @@ class Mod3ToModel():
     def setMeshProperties(self,c):
         self.api.setMeshProperties(self.model.meshProperties(),c)
     
+    def createEmptyTree(self, c):
+        self.api.createEmptyTree(self.model.prepareArmature(),c)
+    
     def createArmature(self,c):
         self.api.createArmature(self.model.prepareArmature(),c)
         
@@ -83,9 +90,12 @@ class Mod3ToModel():
         
     def maximizeClipping(self,c):
         self.api.maximizeClipping(c)
+
+    def linkEmptyTree(self,c):
+        self.api.linkEmptyTree(c)
         
-    def linkArmatureMesh(self,c):
-        self.api.linkArmatureMesh(c)
+    def linkArmature(self,c):
+        self.api.linkArmature(c)
         
     def importTextures(self,c,chunkpath):
         self.material = Mrl3.MRL3()

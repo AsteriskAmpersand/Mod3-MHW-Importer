@@ -46,9 +46,9 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import File Header.",
         description = "Imports file headers as scene properties.",
         default = True)
-    import_skeleton = BoolProperty(
-        name = "Import Skeleton.",
-        description = "Imports the skeleton as an armature.",
+    link_skeleton = BoolProperty(
+        name = "Hook Mesh to Skeleton.",
+        description = "Applies modifiers to mesh so it's linked to the skeleton.",
         default = True)
     import_meshparts = BoolProperty(
         name = "Import Meshparts.",
@@ -66,6 +66,14 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
         default = "")
+    import_skeleton = EnumProperty(
+        name = "Import Skeleton.",
+        description = "Imports the skeleton as an armature.",
+        items = [("None","Don't Import","Does not import the skeleton.",0),
+                  ("EmptyTree","Empty Tree","Import the skeleton as a tree of empties",1),
+                  ("Armature","Animation Armature","Import the skeleton as a blender armature",2),
+                  ],
+        default = "EmptyTree") 
     weight_format = EnumProperty(
         name = "Weight Format",
         description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
@@ -105,16 +113,17 @@ class ImportMOD3(Operator, ImportHelper):
             options["High LOD"]=True
         if self.import_header:
             options["Scene Header"]=True
-        if self.import_skeleton:
-            options["Armature"]=True
+        if self.import_skeleton != "None":
+            options["Skeleton"]=self.import_skeleton
         if self.import_meshparts:
             options["Mesh Parts"]=True
         if self.import_unknown_mesh_props:
             options["Mesh Unknown Properties"]=True
         if self.high_lod:
             options["Only Highest LOD"]=True
-        if self.import_skeleton and self.import_meshparts and self.weight_format == "Group":
-            options["Skeleton Modifier"]=True
+        if self.import_skeleton != "None" and self.import_meshparts and self.weight_format == "Group":
+            if self.link_skeleton:
+                options["Skeleton Modifier"]= self.import_skeleton
         if self.import_textures:
             options["Import Textures"]=self.texture_path
         if self.override_defaults:
