@@ -13,6 +13,7 @@ from mathutils import Vector, Matrix
 from collections import OrderedDict
 try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
+    from ..blender import BlenderSupressor
 except:
     import sys
     sys.path.insert(0, r'..\mod3')
@@ -95,9 +96,11 @@ class BlenderImporterAPI(ModellingAPI):
         blenderArmature.draw_type = 'STICK'
         bpy.ops.object.mode_set(mode='EDIT')
         
+        empty = BlenderImporterAPI.createParentBone(blenderArmature)
         boneGraph = BoneGraph(armature)
         for bone in boneGraph.root():
-            BlenderImporterAPI.createBone(blenderArmature, bone)
+            root = BlenderImporterAPI.createBone(blenderArmature, bone)
+            root.parent = empty
             #arm.pose.bones[ix].matrix
             
         bpy.ops.object.editmode_toggle()
@@ -172,7 +175,10 @@ class BlenderImporterAPI(ModellingAPI):
 
     @staticmethod
     def linkArmature(context):
-        pass
+        with BlenderSupressor.SupressBlenderOps():
+            for mesh in context.meshes:
+                modifier = mesh.modifiers.new(name = "Animation Armature", type='ARMATURE')
+                modifier.object = context.armature
         
     @staticmethod
     def clearScene(context):
@@ -338,7 +344,16 @@ class BlenderImporterAPI(ModellingAPI):
             self.head = Vector([0,-1,0])
             self.tail = Vector([0,0,0])
             self.magnitude = 1
-    
+            
+    @staticmethod
+    def createParentBone(armature):
+        bone = armature.edit_bones.new("Bone.255")
+        bone.head = Vector([0, 0, 0])
+        bone.tail = Vector([0, 1, 0])
+        bone.matrix = Matrix.Identity(4)
+        bone.tail -= Vector([0, 1, 0]) + Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
+        return bone
+        
     @staticmethod
     def createBone(armature, obj, parent_bone = None):
         bone = armature.edit_bones.new(obj.name)

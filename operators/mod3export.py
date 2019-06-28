@@ -12,6 +12,7 @@ from bpy.types import Operator
 
 from ..mod3 import Mod3ExporterLayer as Mod3EL
 from ..blender import BlenderMod3Exporter as Api
+from ..blender.BlenderSupressor import SupressBlenderOps
 
 class Context():
     def __init__(self, path, meshes, armature):
@@ -43,16 +44,15 @@ class ExportMOD3(Operator, ExportHelper):
                   ("Warning","Warning","Will be logged as a warning. This are displayed in the console. (Window > Toggle_System_Console)",1),
                   ("Error","Error","Will stop the exporting process. An error will be displayed and the log will show details. (Window > Toggle_System_Console)",2),
                   ]
-    levelProperties = ["propertyLevel","blocktypeLevel","loopLevel","uvLevel","colourLevel","weightLevel","weightCountLevel","facesLevel"]
-    levelNames = ["Property Error Level", "Blocktype Error Level", "Loops Error Level", "UV Error Level", "Colour Error Level", "Weighting Error Level", "Weight Count Error Level", "Faces Error Level"]
+    levelProperties = ["propertyLevel","blocktypeLevel","loopLevel","uvLevel","colourLevel","weightLevel","weightCountLevel"]
+    levelNames = ["Property Error Level", "Blocktype Error Level", "Loops Error Level", "UV Error Level", "Colour Error Level", "Weighting Error Level", "Weight Count Error Level"]
     levelDescription = ["Missing and Duplicated Header Properties",
                         "Conflicting Blocktype Declarations",
                         "Redundant, Mismatched and Missing Normals",
                         "UV Map Incompatibilities",
                         "Colour Map Incompatibilities",
                         "Vertex Weight Groups Irregularities",
-                        "Weight Count Errors",
-                        "Non Triangular Faces"]
+                        "Weight Count Errors"]
     levelDefaults = ["Warning","Error","Ignore","Error","Ignore","Warning","Warning","Error"]
     propString = """EnumProperty(
                     name = name,
@@ -65,21 +65,24 @@ class ExportMOD3(Operator, ExportHelper):
 
     def execute(self,context):
         BApi = Api.BlenderExporterAPI()
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-        except:
-            pass
-        bpy.ops.object.select_all(action='DESELECT')
-        for obj in bpy.context.scene.objects:
-            obj.select = obj.type == "MESH"
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        bpy.ops.object.select_all(action='DESELECT')
+        with SupressBlenderOps():
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+            except:
+                pass
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in bpy.context.scene.objects:
+                obj.select = obj.type == "MESH"
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            bpy.ops.object.select_all(action='DESELECT')
             
         options = self.parseOptions()
         Mod3EL.ModelToMod3(BApi, options).execute(self.properties.filepath)
-        bpy.ops.object.select_all(action='DESELECT')
-        for ob in bpy.context.selected_objects:
-            ob.select = False
+        
+        with SupressBlenderOps():
+            bpy.ops.object.select_all(action='DESELECT')
+            for ob in bpy.context.selected_objects:
+                ob.select = False
         #bpy.ops.object.mode_set(mode='OBJECT')
         #bpy.context.area.type = 'INFO'
         return {'FINISHED'}

@@ -203,10 +203,10 @@ class ErrorHandler():
             self.MessageList.append((self.meshname,"%s: Weight group %s not associated to any bone, consider deleting."%(self.weightLevel, weightName)))
 
     def polyFace(self):
-        self.__setattr__(self.facesLevel,True)
-        if self.facesLevel != "Ignore":
-            self.MessageList.append((self.meshname,"%s: Non triangular face. Consider running Blender's triangulation previous to export."%(self.facesLevel)))
-
+        self.Error = True
+        self.MessageList.append((self.meshname,"Error: Non triangular face. Run Blender's triangulation previous to export."))
+        self.verify()
+        
     def multipleNegativeWeights(self, weights):
         self.__setattr__(self.weightCountLevel,True)
         if self.weightCountLevel != "Ignore":

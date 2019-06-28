@@ -37,27 +37,30 @@ class MeshClone():
         #self.clone = None
                    
     def __enter__(self):
-        self.copy = self.original.copy()
-        bpy.context.scene.objects.link(self.copy)
-        bpy.context.scene.objects.active = self.copy
-        self.original.select = False
-        self.copy.select = True
-        bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True)
-        for mod in self.copy.modifiers:
-            try:
-                bpy.ops.object.modifier_apply(modifier = mod.name)
-            except Exception as e:
-                pass
-        self.copy.select = False
-        bpy.context.scene.objects.active = None
+        with SupressBlenderOps():
+            self.copy = self.original.copy()
+            bpy.context.scene.objects.link(self.copy)
+            bpy.context.scene.objects.active = self.copy
+            self.original.select = False
+            self.copy.select = True
+            bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True)
+            for mod in self.copy.modifiers:
+                try:
+                    bpy.ops.object.modifier_apply(modifier = mod.name)
+                except Exception as e:
+                    pass
+            self.copy.select = False
+            bpy.context.scene.objects.active = None
         return self.copy
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if bpy.context.mode == "EDIT":
-            bpy.ops.object.mode_set(mode = 'OBJECT')
         with SupressBlenderOps():
-            bpy.ops.object.delete({"selected_objects": self.copy})      
-        self.copyObject = None
+            if bpy.context.mode == "EDIT":
+                bpy.ops.object.mode_set(mode = 'OBJECT')
+            self.copy
+            objs = bpy.data.objects
+            objs.remove(objs[self.copy.name], do_unlink=True)
+            self.copyObject = None
         return False
 
 import re
