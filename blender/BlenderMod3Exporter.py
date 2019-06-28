@@ -10,7 +10,7 @@ import bpy
 import math
 import os
 import sys
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from collections import OrderedDict
 
 try:
@@ -285,7 +285,7 @@ class BlenderExporterAPI(ModellingAPI):
             color = list(map(int,colorLoop.color*255))+[255]
             vertIndex = loop.vertex_index
             if vertIndex in vertColor and color != vertColor[vertIndex]:
-                errorHandler.duplicateColor(vertIndex, color, vertColor)
+                errorHandler.duplicateColor(vertIndex, Vector(color), vertColor)
             else:
                 vertColor[vertIndex]=color
         return vertColor

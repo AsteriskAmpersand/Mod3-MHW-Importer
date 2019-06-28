@@ -6,7 +6,7 @@ Created on Thu Mar 28 22:15:37 2019
 """
 
 from collections import Counter, OrderedDict
-    
+
 class UnhandledErrors(Exception):
     pass
 class UnexportableError(Exception):
@@ -183,13 +183,18 @@ class ErrorHandler():
         self.uvOffenders[loop.vertex_index].append(loopUV)
         #if necessary the code can be made more complex to handle this case more elegantly for now it just keeps only the first    
     
+    @staticmethod
+    def colourMean(colorArray):
+        return list(map(round,sum(colorArray,colorArray[0]*0)/len(colorArray)))
+    
     def duplicateColor(self, vertIndex, color, vertColor):
         self.__setattr__(self.colourLevel,True)
         if self.colourLevel != "Ignore":
             self.MessageList.append((self.meshname,"%s: Multiple different colours per loop at single vertex."%self.colourLevel))
         if vertIndex not in self.colourOffenders:
-            self.colourOffender[vertIndex] = []
-        self.colourOffender[vertIndex].append(color)     
+            self.colourOffenders[vertIndex] = []
+        self.colourOffenders[vertIndex].append(color)
+        vertColor[vertIndex]=list(self.colourMean(self.colourOffenders[vertIndex]))
         #if necessary the code can be made more complex to handle this case more elegantly for now it just keeps only the first 
 
     def uninversibleBlockLabel(self):
