@@ -11,6 +11,7 @@ from bpy.types import Operator
 
 from ..mod3 import Mod3ImporterLayer as Mod3IL
 from ..blender import BlenderMod3Importer as Api
+from ..blender import BlenderSupressor
 from ..common import FileLike as FL
 
 
@@ -97,8 +98,9 @@ class ImportMOD3(Operator, ImportHelper):
         BApi = Api.BlenderImporterAPI()
         options = self.parseOptions()
         blenderContext = Context(self.properties.filepath,None,None)
-        Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)     
-        bpy.ops.object.select_all(action='DESELECT')
+        with BlenderSupressor.SupressBlenderOps():
+            Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)   
+            bpy.ops.object.select_all(action='DESELECT')
         #bpy.ops.object.mode_set(mode='OBJECT')
         #bpy.context.area.type = 'INFO'
         return {'FINISHED'}
