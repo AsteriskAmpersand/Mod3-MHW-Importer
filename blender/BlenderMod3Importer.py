@@ -349,9 +349,8 @@ class BlenderImporterAPI(ModellingAPI):
     def createParentBone(armature):
         bone = armature.edit_bones.new("Bone.255")
         bone.head = Vector([0, 0, 0])
-        bone.tail = Vector([0, 1, 0])
-        bone.matrix = Matrix.Identity(4)
-        bone.tail -= Vector([0, 1, 0]) + Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
+        bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
+        bone.matrix = Matrix.Identity(4)        
         return bone
         
     @staticmethod
