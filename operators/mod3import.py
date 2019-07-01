@@ -47,9 +47,9 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import File Header.",
         description = "Imports file headers as scene properties.",
         default = True)
-    link_skeleton = BoolProperty(
-        name = "Hook Mesh to Skeleton.",
-        description = "Applies modifiers to mesh so it's linked to the skeleton.",
+    independent_skeleton = BoolProperty(
+        name = "Preserve Mesh-Skeleton Independence",
+        description = "Avoids applying modifiers to mesh that force-link it to the skeleton.",
         default = True)
     import_meshparts = BoolProperty(
         name = "Import Meshparts.",
@@ -124,7 +124,7 @@ class ImportMOD3(Operator, ImportHelper):
         if self.high_lod:
             options["Only Highest LOD"]=True
         if self.import_skeleton != "None" and self.import_meshparts and self.weight_format == "Group":
-            if self.link_skeleton:
+            if not self.independent_skeleton or self.import_skeleton != "EmptyTree":
                 options["Skeleton Modifier"]= self.import_skeleton
         if self.import_textures:
             options["Import Textures"]=self.texture_path

@@ -54,7 +54,7 @@ class BonePoint():
         return self.children
 
 class BlenderImporterAPI(ModellingAPI):
-    MACHINE_EPSILON = 2**-16
+    MACHINE_EPSILON = 2**-8
     dbg = debugger()
     
 #=============================================================================
@@ -357,7 +357,7 @@ class BlenderImporterAPI(ModellingAPI):
     def createBone(armature, obj, parent_bone = None):
         bone = armature.edit_bones.new(obj.name)
         bone.head = Vector([0, 0, 0])
-        bone.tail = Vector([0, 1, 0])#Vector([0, 1, 0])
+        bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])#Vector([0, 1, 0])
         if not parent_bone:
             parent_bone = BlenderImporterAPI.DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
         bone.matrix = parent_bone.matrix * obj.lmatrix
@@ -365,7 +365,6 @@ class BlenderImporterAPI(ModellingAPI):
             nbone = BlenderImporterAPI.createBone(armature, child, bone)
             nbone.parent = bone
         BlenderImporterAPI.parseProperties(obj.properties,bone.__setitem__)
-        bone.tail -= Vector([0, 1, 0]) + Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
         return bone
     
     @staticmethod
