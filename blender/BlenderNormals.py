@@ -16,6 +16,7 @@ def rationalize(value,N):
 def denormalize(vector):
     x,y,z = vector.x, vector.y, vector.z
     maxima = max(abs(x),abs(y),abs(z))
+    if maxima == 0: maxima = 1
     x,y,z = round(127*x/maxima), round(127*y/maxima), round(127*z/maxima)
     print(maxima)
     return [x,y,z,0]
