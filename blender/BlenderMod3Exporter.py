@@ -18,6 +18,7 @@ try:
     from ..mod3.Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
     from ..blender.BlenderSupressor import SupressBlenderOps
+    from ..blender.BlenderNormals import denormalize
     from ..common.crc import CrcJamcrc
 except:
     sys.path.insert(0, r'..\mod3')
@@ -37,6 +38,7 @@ class MeshClone():
         #self.clone = None
                    
     def __enter__(self):
+        return self.original
         with SupressBlenderOps():
             self.copy = self.original.copy()
             bpy.context.scene.objects.link(self.copy)
@@ -49,17 +51,19 @@ class MeshClone():
                     bpy.ops.object.modifier_apply(modifier = mod.name)
                 except Exception as e:
                     pass
-            self.copy.select = False
-            bpy.context.scene.objects.active = None
+            #self.copy.select = False
+            #bpy.context.scene.objects.active = None
         return self.copy
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        return False
         with SupressBlenderOps():
             if bpy.context.mode == "EDIT":
                 bpy.ops.object.mode_set(mode = 'OBJECT')
-            self.copy
+            #self.copy
             objs = bpy.data.objects
             objs.remove(objs[self.copy.name], do_unlink=True)
+            bpy.context.scene.objects.active = None
             self.copyObject = None
         return False
 
@@ -240,14 +244,11 @@ class BlenderExporterAPI(ModellingAPI):
         if not useSplit or not mesh.use_auto_smooth:
             mesh.use_auto_smooth = True
             mesh.normals_split_custom_set_from_vertices([vert.normal for vert in mesh.vertices])
-        try:
-            mesh.calc_tangents()
-        except:
-            pass
+        mesh.calc_tangents()
         normals = {}
         tangents = {}
         for loop in mesh.loops:
-            vNormal = list(map(round,loop.normal*127))+[0]
+            vNormal = denormalize(loop.normal)
             vTangent = list(map(round, loop.tangent*127)) + [int(loop.bitangent_sign)*127]
             if loop.vertex_index in normals and \
                 any([not (-1<=(c0-c1)<=1) for c0,c1 in zip(normals[loop.vertex_index],vNormal) ]):

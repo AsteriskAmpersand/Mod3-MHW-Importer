@@ -14,6 +14,7 @@ from collections import OrderedDict
 try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..blender import BlenderSupressor
+    from ..blender.BlenderNormals import normalize
 except:
     import sys
     sys.path.insert(0, r'..\mod3')
@@ -277,7 +278,7 @@ class BlenderImporterAPI(ModellingAPI):
         meshpart.polygons.foreach_set("use_smooth", [True] * len(meshpart.polygons))
         
         #meshpart.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-        meshpart.normals_split_custom_set_from_vertices(normals)
+        meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
         meshpart.show_edge_sharp = True
