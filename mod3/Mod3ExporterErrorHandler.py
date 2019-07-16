@@ -159,7 +159,7 @@ class ErrorHandler():
         vert["uvs"] = vert["uvs"][:4]
         return
     
-    def excessColorLayers(self, vert, colourLayers):
+    def excessColorLayers(self, colourLayers):
         self.__setattr__(self.colourLevel,True)
         if self.colourLevel != "Ignore":
             self.MessageList.append((self.meshname,"%s: More than 1 Colour Maps."%self.colourLevel))
