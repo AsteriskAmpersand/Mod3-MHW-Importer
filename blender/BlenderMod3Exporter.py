@@ -244,7 +244,10 @@ class BlenderExporterAPI(ModellingAPI):
         if not useSplit or not mesh.use_auto_smooth:
             mesh.use_auto_smooth = True
             mesh.normals_split_custom_set_from_vertices([vert.normal for vert in mesh.vertices])
-        mesh.calc_tangents()
+        try:
+            mesh.calc_tangents()
+        except:
+            pass
         normals = {}
         tangents = {}
         for loop in mesh.loops:
