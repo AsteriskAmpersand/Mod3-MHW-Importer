@@ -160,7 +160,7 @@ class ErrorHandler():
         vert["uvs"] = vert["uvs"][:4]
         return
     
-    def excessColorLayers(self, vert, colourLayers):
+    def excessColorLayers(self, colourLayers):
         self.__setattr__(self.colourLevel,True)
         if self.colourLevel != "Ignore":
             self.MessageList.append((self.meshname,"%s: More than 1 Colour Maps."%self.colourLevel))
@@ -246,6 +246,7 @@ class ErrorHandler():
         self.Error = True
         self.MessageList.append("Error: %s candidate empty roots for the skeleton."%quantifier)
         self.verify()
+<<<<<<< HEAD
         
     def testGroupFunction(self, groupNameFunction, groupID):
         try:
@@ -253,3 +254,5 @@ class ErrorHandler():
             return True
         except:
             return False
+=======
+>>>>>>> origin/master
