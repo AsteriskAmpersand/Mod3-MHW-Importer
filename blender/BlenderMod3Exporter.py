@@ -98,7 +98,7 @@ class BlenderExporterAPI(ModellingAPI):
         trail = {}
         options.errorHandler.setSection("Scene Headers")
         BlenderExporterAPI.verifyLoad(bpy.context.scene,"TrailingData",options.errorHandler,trail)
-        for prop in ["MeshPropertyCount", "boneMapCount", "groupCount", "materialCount","vertexIds", "unkn1", "unkn2"]:
+        for prop in ["MeshPropertyCount", "boneMapCount", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
             BlenderExporterAPI.verifyLoad(bpy.context.scene,prop,options.errorHandler,header)
         meshProps = OrderedDict()
         for ix in range(header["MeshPropertyCount"]):
@@ -297,7 +297,7 @@ class BlenderExporterAPI(ModellingAPI):
 
     @staticmethod    
     def weightHandling(weightGroups, skeletonMap, groupNameFunction, errorHandler):
-        parsedGroups = [(groupNameFunction(group.group), group.weight) for group in weightGroups]
+        parsedGroups = [(groupNameFunction(group.group), group.weight) for group in weightGroups if errorHandler.testGroupFunction(groupNameFunction,group.group) ]
         validGroupName = lambda w: BlenderExporterAPI.validGroupName(w, skeletonMap, errorHandler)
         weights = BufferedWeights([BufferedWeight(weightName,skeletonMap,weightVal) for weightName, weightVal in parsedGroups if validGroupName(weightName)],errorHandler)
         return weights

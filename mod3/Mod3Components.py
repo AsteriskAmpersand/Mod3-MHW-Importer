@@ -35,11 +35,11 @@ class MOD3Header(CS.PyCStruct):
             ("vertexOffset","uint64"),
             ("facesOffset","uint64"),
             ("unknOffset","uint64"),
-            ("unkn1","float[38]"),
-            ("unkn2","byte[64]")
+            ("hUnkn1","float[38]"),
+            ("hUnkn2","byte[64]")
             ])
     scenePropertyList = ["vertexIds", "groupCount", "boneMapCount", "materialCount",
-                             "unkn1","unkn2"]
+                             "hUnkn1","hUnkn2"]
     defaultProperties = {"id":0x444F4D,"version":237,"version2":0,"secondBufferSize":0}
     requiredProperties = set(scenePropertyList)
     def sceneProperties(self):
