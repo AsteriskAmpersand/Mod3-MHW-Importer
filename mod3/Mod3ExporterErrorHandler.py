@@ -103,6 +103,7 @@ class ErrorHandler():
                         "MeshPropertyCount":0, "boneMapCount":0xFFFFFFF,
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
                         "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":[0]*39,
+                        "hUnkn1":[0]*38, "hUnkn2":[0]*64,
                         "TrailingData":[], "material":None,
                         "visibleCondition":0,"lod":0xFFFF,"blockLabel":None,
                         "boneremapid":0,    
@@ -245,3 +246,10 @@ class ErrorHandler():
         self.Error = True
         self.MessageList.append("Error: %s candidate empty roots for the skeleton."%quantifier)
         self.verify()
+        
+    def testGroupFunction(self, groupNameFunction, groupID):
+        try:
+            groupNameFunction(groupID)
+            return True
+        except:
+            return False
