@@ -162,7 +162,7 @@ class BlenderExporterAPI(ModellingAPI):
             #Check Child Constraint
             bone["child"] = BlenderExporterAPI.getTarget(child, errorHandler)
             LMatrix= child.matrix_local.copy()
-            AMatrix= LMatrix.inverted()*(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
+            AMatrix= LMatrix.inverted()@(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
             bone["x"], bone["y"], bone["z"] = (LMatrix[i][3] for i in range(3))
             bone["parentId"] = pix
             bone["length"]=math.sqrt(bone["x"]**2 +bone["y"]**2+ bone["z"]**2)
@@ -286,7 +286,7 @@ class BlenderExporterAPI(ModellingAPI):
             colorLayer = mesh.data.vertex_colors[0].data
         vertColor = {}
         for loop, colorLoop in zip(mesh.data.loops, colorLayer):
-            color = list(map(int,colorLoop.color*255))+[255]
+            color = list(map(int,Vector(colorLoop.color)*255))
             vertIndex = loop.vertex_index
             if vertIndex in vertColor and color != vertColor[vertIndex]:
                 errorHandler.duplicateColor(vertIndex, Vector(color), vertColor)
