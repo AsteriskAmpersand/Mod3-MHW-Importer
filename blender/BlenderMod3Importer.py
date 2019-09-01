@@ -89,7 +89,7 @@ class BlenderImporterAPI(ModellingAPI):
         bpy.ops.object.select_all(action='DESELECT')
         blenderArmature = bpy.data.armatures.new('%s Armature'%filename)
         arm_ob = bpy.data.objects.new('%s Armature'%filename, blenderArmature)
-        bpy.context.scene.objects.link(arm_ob)
+        bpy.context.collection.objects.link(arm_ob)
         bpy.context.scene.update()
         arm_ob.select = True
         arm_ob.show_x_ray = True
@@ -135,7 +135,7 @@ class BlenderImporterAPI(ModellingAPI):
                 BlenderImporterAPI.dbg.write("\tLoading Colours\n")
                 vcol_layer = blenderMesh.vertex_colors.new()
                 for l,col in zip(blenderMesh.loops, vcol_layer.data):
-                    col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])[:3]
+                    col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])
             #UVs
             BlenderImporterAPI.dbg.write("\tLoading UVs\n")
             for ix, uv_layer in enumerate(meshpart["uvs"]):
@@ -265,7 +265,7 @@ class BlenderImporterAPI(ModellingAPI):
         blenderMesh.update()
         blenderObject = bpy.data.objects.new("%s LOD %d"%(name,meshpart["properties"]["lod"]), blenderMesh)
         BlenderImporterAPI.dbg.write("Geometry Link\n")
-        bpy.context.scene.objects.link(blenderObject)
+        bpy.context.collection.objects.link(blenderObject)
         return blenderMesh, blenderObject
     
     @staticmethod
@@ -281,7 +281,7 @@ class BlenderImporterAPI(ModellingAPI):
         meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
-        meshpart.show_edge_sharp = True
+        bpy.types.View3DOverlay.show_edge_sharp = True
         
         #db
     
@@ -316,9 +316,9 @@ class BlenderImporterAPI(ModellingAPI):
     def createRootNub(miniscene):
         o = bpy.data.objects.new("Bone.%03d"%255, None )
         miniscene["Bone.%03d"%255]=o
-        bpy.context.scene.objects.link( o )
+        bpy.context.collection.objects.link( o )
         o.show_wire = True
-        o.show_x_ray = True
+        o.show_in_front = True
         return
         
     
@@ -326,7 +326,7 @@ class BlenderImporterAPI(ModellingAPI):
     def createNub(ix, bone, armature, miniscene):
         o = bpy.data.objects.new("Bone.%03d"%ix, None )
         miniscene["Bone.%03d"%ix]=o
-        bpy.context.scene.objects.link( o )
+        bpy.context.collection.objects.link( o )
         #if bone["parentId"]!=255:
         parentName = "Bone.%03d"%bone["parentId"]
         if parentName not in miniscene:
@@ -335,7 +335,7 @@ class BlenderImporterAPI(ModellingAPI):
         
         o.matrix_local = BlenderImporterAPI.deserializeMatrix("LMatCol",bone)
         o.show_wire = True
-        o.show_x_ray = True
+        o.show_in_front = True
         o.show_bounds = True
         BlenderImporterAPI.parseProperties(bone["CustomProperties"],o.__setitem__)
     
@@ -380,7 +380,7 @@ class BlenderImporterAPI(ModellingAPI):
             groupName = "Bone.%s"%str(groupId)
             for vertex,weight in group:
                 if groupName not in blenderObject.vertex_groups:
-                    blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
+                    blenderObject.vertex_groups.new(name = groupName)#blenderObject Maybe?
                 blenderObject.vertex_groups[groupName].add([vertex], weight, 'ADD')
         return
     
@@ -422,7 +422,7 @@ class BlenderImporterAPI(ModellingAPI):
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
         BlenderImporterAPI.dbg.write("\t\tCreating new UV\n")
-        blenderMesh.uv_textures.new(name)
+        blenderMesh.uv_layers.new(name = name)
         blenderMesh.update()
         BlenderImporterAPI.dbg.write("\t\tCreating BMesh\n")
         blenderBMesh = bmesh.new()
@@ -442,7 +442,7 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.dbg.write("\t\tMesh Written Back\n")
         blenderMesh.update()
         BlenderImporterAPI.dbg.write("\t\tMesh Updated\n")
-        return blenderMesh.uv_textures[name]
+        return blenderMesh.uv_layers[name]
     
     @staticmethod
     def uvFaceCombination(vertexUVMap, FaceList):
