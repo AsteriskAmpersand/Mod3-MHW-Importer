@@ -246,7 +246,6 @@ class ErrorHandler():
         self.Error = True
         self.MessageList.append("Error: %s candidate empty roots for the skeleton."%quantifier)
         self.verify()
-<<<<<<< HEAD
         
     def testGroupFunction(self, groupNameFunction, groupID):
         try:
@@ -254,5 +253,3 @@ class ErrorHandler():
             return True
         except:
             return False
-=======
->>>>>>> origin/master
