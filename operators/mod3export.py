@@ -61,7 +61,7 @@ class ExportMOD3(Operator, ExportHelper):
                     default = pred,                
                     )"""
     for prop,name,desc,pred in zip(levelProperties, levelNames, levelDescription, levelDefaults):
-        exec("%s = %s"%(prop, propString))
+        exec("%s : %s"%(prop, propString))
 
     def execute(self,context):
         BApi = Api.BlenderExporterAPI()
