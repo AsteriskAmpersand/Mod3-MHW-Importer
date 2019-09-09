@@ -94,7 +94,7 @@ class BlenderImporterAPI(ModellingAPI):
         arm_ob.select_set(True)
         arm_ob.show_in_front = True
         bpy.context.view_layer.objects.active = arm_ob
-        blenderArmature.draw_type = 'STICK'
+        blenderArmature.display_type = 'STICK'
         bpy.ops.object.mode_set(mode='EDIT')
         
         empty = BlenderImporterAPI.createParentBone(blenderArmature)
