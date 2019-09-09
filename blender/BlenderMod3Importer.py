@@ -91,8 +91,8 @@ class BlenderImporterAPI(ModellingAPI):
         arm_ob = bpy.data.objects.new('%s Armature'%filename, blenderArmature)
         bpy.context.collection.objects.link(arm_ob)
         bpy.context.evaluated_depsgraph_get().update()
-        arm_ob.select = True
-        arm_ob.show_x_ray = True
+        arm_ob.select_set(True)
+        arm_ob.show_in_front = True
         bpy.context.view_layer.objects.active = arm_ob
         blenderArmature.draw_type = 'STICK'
         bpy.ops.object.mode_set(mode='EDIT')
