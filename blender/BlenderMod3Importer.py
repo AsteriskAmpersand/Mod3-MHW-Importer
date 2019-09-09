@@ -90,10 +90,10 @@ class BlenderImporterAPI(ModellingAPI):
         blenderArmature = bpy.data.armatures.new('%s Armature'%filename)
         arm_ob = bpy.data.objects.new('%s Armature'%filename, blenderArmature)
         bpy.context.collection.objects.link(arm_ob)
-        bpy.context.scene.update()
+        bpy.context.evaluated_depsgraph_get().update()
         arm_ob.select = True
         arm_ob.show_x_ray = True
-        bpy.context.scene.objects.active = arm_ob
+        bpy.context.view_layer.objects.active = arm_ob
         blenderArmature.draw_type = 'STICK'
         bpy.ops.object.mode_set(mode='EDIT')
         
@@ -361,7 +361,7 @@ class BlenderImporterAPI(ModellingAPI):
         bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])#Vector([0, 1, 0])
         if not parent_bone:
             parent_bone = BlenderImporterAPI.DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
-        bone.matrix = parent_bone.matrix * obj.lmatrix
+        bone.matrix = parent_bone.matrix @ obj.lmatrix
         for child in obj.children:
             nbone = BlenderImporterAPI.createBone(armature, child, bone)
             nbone.parent = bone
