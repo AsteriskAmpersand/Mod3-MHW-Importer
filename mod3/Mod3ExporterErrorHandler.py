@@ -34,7 +34,7 @@ class ErrorHandler():
         for section, errors in self.PermanentRecord.items():
             if errors:
                 message+='\n'+separator+section+'\n'+separator+'\n'.join(errors)+'\n'
-        self.api.displayErrors(text=message)
+        self.api.displayErrors(message)
         return        
         
     def stowErrors(self):
