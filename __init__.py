@@ -13,7 +13,7 @@ bl_info = {
     "category": "Import-Export",
     "author": "AsteriskAmpersand (Code) & CrazyT (Structure)",
     "location": "File > Import-Export",
-    "version": (2,0,0),
+    "version": (2,0,1),
     "blender": (2, 80, 0)
 }
  
