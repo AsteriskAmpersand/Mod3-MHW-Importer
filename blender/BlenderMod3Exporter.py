@@ -117,7 +117,7 @@ class BlenderExporterAPI(ModellingAPI):
     def getSkeletalStructure(options):
         skeletonMap = {}
         options.errorHandler.setSection("Skeleton")
-        rootEmpty = [o for o in bpy.context.scene.objects if o.type =="EMPTY" and not o.parent]
+        rootEmpty = BlenderExporterAPI.getRootEmpty()
         root = options.validateSkeletonRoot(rootEmpty)
         protoskeleton = []
         BlenderExporterAPI.recursiveEmptyDeconstruct(255, root, protoskeleton, skeletonMap, options.errorHandler)
@@ -141,6 +141,34 @@ class BlenderExporterAPI(ModellingAPI):
 # =============================================================================
 # Exporter Functions:
 # =============================================================================
+    @staticmethod
+    def getRootEmpty():
+        childless = []
+        childed = []
+        for o in bpy.context.scene.objects:
+            if BlenderExporterAPI.isCandidateRoot(o):
+                if o.children:
+                    childed.append(o)
+                else:
+                    childless.append(o)
+        return childed if childed else childless
+
+    @staticmethod
+    def isCandidateRoot(rootCandidate):
+        if rootCandidate.type !="EMPTY" or rootCandidate.parent:
+            return False
+        if "Type" in rootCandidate:
+            if rootCandidate["Type"] == "SkeletonRoot":
+                return True
+            else:
+                return False        
+        if "boneFunction" in rootCandidate:
+            return False
+        if rootCandidate.children:
+            return any(("boneFunction" in child for child in rootCandidate.children))
+        else:
+            return True
+        
     @staticmethod
     def verifyLoad(source, propertyName, errorHandler, storage):
         if propertyName in source:
