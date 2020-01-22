@@ -4,6 +4,7 @@ Created on Sun Feb 24 18:22:05 2019
 
 @author: AsteriskAmpersand
 """
+import os
 try:
     from ..mod3 import Mod3
     from ..mrl3 import Mrl3
@@ -138,14 +139,13 @@ class Mod3ToModel():
 ###Material Structuring
 ###############################################################################
 ###############################################################################
-import os
 
 def materialPathForkingResolution(modelPath, texturePath, chunkPath):
     filename = os.path.basename(texturePath)
     modelFolder = os.path.dirname(os.path.abspath(modelPath))
     pathCandidates = [os.path.join(modelFolder,filename), os.path.join(chunkPath,texturePath)]
     for path in pathCandidates:
-        if os.path.exists(path+".png"):
+        if os.path.exists(path+".PNG"):
             return path
         elif os.path.exists(path+".dds"):
             TextureConverter.convertDDSToPNG(path+".dds")
@@ -155,4 +155,3 @@ def materialPathForkingResolution(modelPath, texturePath, chunkPath):
             TextureConverter.convertDDSToPNG(path+".dds")
             return path
     return 
-    #TODO - Here be Dragons
