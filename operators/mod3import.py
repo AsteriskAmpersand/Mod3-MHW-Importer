@@ -29,53 +29,45 @@ class ImportMOD3(Operator, ImportHelper):
  
     # ImportHelper mixin class uses this
     filename_ext = ".mod3"
-    filter_glob: StringProperty(default="*.mod3", options={'HIDDEN'}, maxlen=255)
+    filter_glob = StringProperty(default="*.mod3", options={'HIDDEN'}, maxlen=255)
 
-    clear_scene: BoolProperty(
+    clear_scene = BoolProperty(
         name = "Clear scene before import.",
         description = "Clears all contents before importing",
         default = True)
-    maximize_clipping: BoolProperty(
+    maximize_clipping = BoolProperty(
         name = "Maximizes clipping distance.",
         description = "Maximizes clipping distance to be able to see all of the model at once.",
         default = True)
-    high_lod: BoolProperty(
+    high_lod = BoolProperty(
         name = "Only import high LOD parts.",
         description = "Skip meshparts with low level of detail.",
         default = True)
-    import_header: BoolProperty(
+    import_header = BoolProperty(
         name = "Import File Header.",
         description = "Imports file headers as scene properties.",
         default = True)
-    independent_skeleton: BoolProperty(
+    independent_skeleton = BoolProperty(
         name = "Preserve Mesh-Skeleton Independence",
         description = "Avoids applying modifiers to mesh that force-link it to the skeleton.",
         default = True)
-    import_meshparts: BoolProperty(
+    import_meshparts = BoolProperty(
         name = "Import Meshparts.",
         description = "Imports mesh parts as meshes.",
         default = True)
-    import_unknown_mesh_props: BoolProperty(
+    import_unknown_mesh_props = BoolProperty(
         name = "Import Unknown Mesh Properties.",
         description = "Imports the Unknown section of the mesh collection as scene property.",
         default = True)
-    import_textures: BoolProperty(
+    import_textures = BoolProperty(
         name = "Import Textures.",
         description = "Imports texture as specified by mrl3.",
         default = True)
-<<<<<<< HEAD
-    import_materials = BoolProperty(
-        name = "Import Materials.",
-        description = "Imports maps as materials as specified by mrl3.",
-        default = False)
     texture_path = StringProperty(
-=======
-    texture_path: StringProperty(
->>>>>>> origin/master
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
         default = "")
-    import_skeleton: EnumProperty(
+    import_skeleton = EnumProperty(
         name = "Import Skeleton.",
         description = "Imports the skeleton as an armature.",
         items = [("None","Don't Import","Does not import the skeleton.",0),
@@ -83,7 +75,7 @@ class ImportMOD3(Operator, ImportHelper):
                   ("Armature","Animation Armature","Import the skeleton as a blender armature",2),
                   ],
         default = "EmptyTree") 
-    weight_format: EnumProperty(
+    weight_format = EnumProperty(
         name = "Weight Format",
         description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
         items = [("Group","Standard","Weights under the same bone are grouped",0),
@@ -91,7 +83,7 @@ class ImportMOD3(Operator, ImportHelper):
                   ("Slash","Split-Slash Notation","As split weight but also conserves weight order",2),
                   ],
         default = "Group")
-    override_defaults: BoolProperty(
+    override_defaults = BoolProperty(
         name = "Override Default Mesh Properties.",
         description = "Overrides program defaults with default properties from the first mesh in the file.",
         default = False)
@@ -136,8 +128,6 @@ class ImportMOD3(Operator, ImportHelper):
                 options["Skeleton Modifier"]= self.import_skeleton
         if self.import_textures:
             options["Import Textures"]=self.texture_path
-        if self.import_materials:
-            options["Import Materials"]=self.texture_path
         if self.override_defaults:
             options["Override Defaults"]=self.texture_path
         options["Split Weights"]=self.weight_format
