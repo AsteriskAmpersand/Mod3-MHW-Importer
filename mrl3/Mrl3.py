@@ -6,6 +6,7 @@ Created on Sun Jan 13 00:07:45 2019
 """
 
 from collections import OrderedDict
+import os
 try:
     from ..common import Cstruct as CS
     from ..mrl3.maptype import maptypeTranslation
@@ -23,6 +24,9 @@ hex_read = lambda f,x: intBytes(f.read(x))
 from ..common.crc import CrcJamcrc
 #from crccheck.crc import CrcJamcrc
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
+
+def fixpath(path):
+    return os.path.abspath(os.path.expanduser(path))
 
 class MRL3Header(CS.PyCStruct):
     fields = OrderedDict([
@@ -125,7 +129,7 @@ class MRL3():
                 index = material.getMapIndex(self.Typing)-1
                 if index < 0 or index > len(self.Textures):
                     raise KeyError
-                return self.Textures[index].path.replace("\x00","")
+                return fixpath(self.Textures[index].path.replace("\x00",""))
         raise KeyError
         
     def getMaterial(self,materialString,materialType):
