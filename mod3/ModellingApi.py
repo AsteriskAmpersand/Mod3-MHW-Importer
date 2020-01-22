@@ -6,8 +6,8 @@ Created on Mon Feb 25 00:21:26 2019
 """
 class debugger():
     def __init__(self, 
-                 path = r"C:\Users\AsteriskAmpersand\AppData\Roaming\Blender Foundation\Blender\2.79\scripts\addons\CleanModelImporter\dbg.txt",
-                 debug = False):
+                 path = r"C:\Users\AsteriskAmpersand\AppData\Roaming\Blender Foundation\Blender\2.79\scripts\addons\Mod3-MHW-Importer\dbg.txt",
+                 debug = True):
         self.debug = debug
         if self.debug:
             self.dbgFile = path
@@ -33,6 +33,9 @@ class ModellingAPI():
         raise NotImplemented
         
     def importTextures(self, importerFunction, c):
+        raise NotImplemented
+        
+    def importMaterialss(self, importerFunction, c):
         raise NotImplemented
         
     def clearScene(self, c):

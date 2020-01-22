@@ -15,6 +15,8 @@ try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..blender import BlenderSupressor
     from ..blender.BlenderNormals import normalize
+    from ..blender.BlenderNodesFunctions import (materialSetup, diffuseSetup, normalSetup,
+                                          specularSetup, emissionSetup, finishSetup, rmtSetup, principledSetup)
 except:
     import sys
     sys.path.insert(0, r'..\mod3')
@@ -192,7 +194,23 @@ class BlenderImporterAPI(ModellingAPI):
             bpy.data.images.remove(bpy.data.images[i])
         BlenderImporterAPI.dbg.write("Scene Cleared\n")
         return
-    
+
+    @staticmethod
+    def loadMaterialFromMesh(meshObject, textureFetch):
+        try:
+            BlenderImporterAPI.dbg.write("\t%s\n"%meshObject.name)
+            BlenderImporterAPI.dbg.write("\tGetting Material Code\n")
+            materialStr = meshObject.data['material'].replace('\x00','')
+            BlenderImporterAPI.dbg.write("\tFetching Material from MRL3\n")
+            BlenderImporterAPI.dbg.write("\t%s\n"%materialStr)
+            filepath = textureFetch(materialStr)
+            BlenderImporterAPI.dbg.write("\tFetching File\n")
+            textureData = BlenderImporterAPI.fetchTexture(filepath)
+            return textureData
+        except Exception as e:
+            BlenderImporterAPI.dbg.write(str(e))
+            raise
+
     @staticmethod
     def importTextures(textureFetch, context):
         BlenderImporterAPI.dbg.write("Importing Texture\n")
@@ -202,20 +220,58 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.dbg.write("\tIterating over Meshes\n")
         for meshObject in context.meshes:
             try:
-                BlenderImporterAPI.dbg.write("\t%s\n"%meshObject.name)
-                BlenderImporterAPI.dbg.write("\tGetting Material Code\n")
-                materialStr = meshObject.data['material'].replace('\x00','')
-                BlenderImporterAPI.dbg.write("\tFetching Material from MRL3\n")
-                BlenderImporterAPI.dbg.write("\t%s\n"%materialStr)
-                filepath = textureFetch(materialStr)
-                BlenderImporterAPI.dbg.write("\tFetching File\n")
-                textureData = BlenderImporterAPI.fetchTexture(filepath)
+                textureData = BlenderImporterAPI.loadMaterialFromMesh(meshObject,textureFetch)
                 BlenderImporterAPI.dbg.write("\tAssigning Texture to Model\n")
                 BlenderImporterAPI.assignTexture(meshObject, textureData)
                 BlenderImporterAPI.dbg.write("\tAssigned Texture to Model\n")
-            except Exception as e:
+            except:
                 pass
+
+    @staticmethod
+    def setupMap(typing,setupFunction,qualifiedFetch,meshObject):
+        fetch = qualifiedFetch(typing)
+        tex = BlenderImporterAPI.loadMaterialFromMesh(meshObject,fetch)
+        BlenderImporterAPI.dbg.write("\t\t\tTexture Fetched\n")
+        nodeEnd = setupFunction(tex)
+        BlenderImporterAPI.dbg.write("\t\t\tAssigned %s to Node Tree\n"%typing)
+        return nodeEnd
+
+    @staticmethod
+    def meshImportMaterials(meshObject,textureFetch):
+        mo=meshObject
+        BlenderImporterAPI.dbg.write("\t\tImporting Material to Mesh\n")
+        qf = lambda y: lambda x: textureFetch(x,y)
+        nodeTree = materialSetup(meshObject)
+        preapplyTree = lambda x: lambda y: x(nodeTree,y)
+        mainNode = principledSetup(nodeTree)
+        next(mainNode)
+        for mapName,mapFunc in zip(["Albedo","Normal","FxMap","RMT","Emissive"],
+                                   [diffuseSetup,normalSetup,specularSetup,rmtSetup,emissionSetup]):
+            try:
+                currentNode = BlenderImporterAPI.setupMap(mapName,preapplyTree(mapFunc),qf,mo)
+                mainNode.send(currentNode)
+            except Exception as e:
+                BlenderImporterAPI.dbg.write(str(e)+'\n')
+                mainNode.send("")
+        try:
+            finishSetup(nodeTree,next(mainNode))
+            return
+        except Exception as e:
+            BlenderImporterAPI.dbg.write(str(e)+'\n')
+            return
+
+    @staticmethod
+    def importMaterials(textureFetch, context):
+        BlenderImporterAPI.dbg.write("Importing Materials\n")
+        if not textureFetch:
+            BlenderImporterAPI.dbg.write("Failed to Import Materials\n")
+            return
+        BlenderImporterAPI.dbg.write("\tIterating over Meshes\n")
+        for meshObject in context.meshes:
+            BlenderImporterAPI.meshImportMaterials(meshObject,textureFetch)
             
+                  
+        
     @staticmethod       
     def overrideMeshDefaults(context):
         if context.meshes:
@@ -449,3 +505,4 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.dbg.write("\t\tFaces %d %d - UV Count %d\n"%(min(map(min,FaceList)), max(map(max,FaceList)), len(vertexUVMap)))
         #BlenderImporterAPI.dbg.write("UVs %s\n"%str([list(map(lambda x: vertexUVMap[x], face)) for face in FaceList]))
         return sum([list(map(lambda x: vertexUVMap[x], face)) for face in FaceList],[])
+
