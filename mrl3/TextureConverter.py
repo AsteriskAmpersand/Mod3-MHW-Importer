@@ -21,7 +21,6 @@ if sys.platform.startswith("win"):
     subprocess_flags = CREATE_NO_WINDOW
 else:
     subprocess_flags = 0
-    
 
 def convertTexToDDS(path):
     processLocation = os.path.join(os.path.dirname(__file__),"MHWorldTex.exe")
@@ -35,8 +34,13 @@ def convertTexToDDS(path):
 def convertDDSToPNG(path):
     processLocation = os.path.join(os.path.dirname(__file__),"TexConv.exe")
     FNULL = open(os.devnull, 'w')
-    args = "\"" + processLocation + "\"" + " \"" + path + "\"" +" -ft png -o \""+os.path.dirname(path)+ "\""
+    #Horrible Hack
+    if "NM" in path:
+        hint = " -sepalpha -f RGBA"
+    else:
+        hint = ""    
+    args = "\"" + processLocation + "\"" + " \"" + path + "\"" + hint + " -ft png -o \""+os.path.dirname(path)+ "\""
     try:
         subprocess.check_output(args, stdin=FNULL, stderr=FNULL, shell=False, creationflags=subprocess_flags)
-    except:
+    except Exception as e:
         pass

@@ -53,6 +53,8 @@ class Mod3ToModel():
             excecute.append(lambda c: self.createMeshParts(c))
             if "Import Textures" in options:
                 excecute.append(lambda c: self.importTextures(c, options["Import Textures"]))
+            if "Import Materials" in options:
+                excecute.append(lambda c: self.importMaterials(c, options["Import Materials"]))
         if "Mesh Unknown Properties" in options:
             excecute.append(lambda c: self.setMeshProperties(c))
         if "Skeleton Modifier" in options:
@@ -96,22 +98,35 @@ class Mod3ToModel():
         
     def linkArmature(self,c):
         self.api.linkArmature(c)
-        
-    def importTextures(self,c,chunkpath):
+    
+    def loadMaterial(self,matPath):
         self.material = Mrl3.MRL3()
-        materialPath = c.path[:-5]+".mrl3"
+        materialPath = matPath[:-5]+".mrl3"
         try:
             materialFile = open(materialPath,"rb")
         except:
             print("No MRL3 found in model directory")
-            return
+            raise
         try:
             self.material.marshall(materialFile)
         except Exception as e:
             print("Unable to read corrupted MRL3")
             print(str(e))
+            raise
+    
+    def importTextures(self,c,chunkpath):
+        try:
+            self.loadMaterial(c.path)
+        except:
             return
-        self.api.importTextures(lambda skinHash: materialPathForkingResolution(c.path, self.material[skinHash], chunkpath),c)        
+        self.api.importTextures(lambda skinHash: materialPathForkingResolution(c.path, self.material[skinHash], chunkpath),c)
+    
+    def importMaterials(self,c,chunkpath):
+        try:
+            self.loadMaterial(c.path)
+        except:
+            return
+        self.api.importMaterials(lambda skinHash, matType: materialPathForkingResolution(c.path, self.material.getMaterial(skinHash,matType), chunkpath),c)
         
         
     def filterToHighestLOD(self,c):

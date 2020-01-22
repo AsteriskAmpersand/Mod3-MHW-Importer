@@ -63,6 +63,10 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import Textures.",
         description = "Imports texture as specified by mrl3.",
         default = True)
+    import_materials = BoolProperty(
+        name = "Import Materials.",
+        description = "Imports maps as materials as specified by mrl3.",
+        default = False)
     texture_path = StringProperty(
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
@@ -128,6 +132,8 @@ class ImportMOD3(Operator, ImportHelper):
                 options["Skeleton Modifier"]= self.import_skeleton
         if self.import_textures:
             options["Import Textures"]=self.texture_path
+        if self.import_materials:
+            options["Import Materials"]=self.texture_path
         if self.override_defaults:
             options["Override Defaults"]=self.texture_path
         options["Split Weights"]=self.weight_format
