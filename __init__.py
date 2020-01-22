@@ -12,32 +12,41 @@ bl_info = {
     "name": "MHW Mod3 Model Importer",
     "category": "Import-Export",
     "author": "AsteriskAmpersand (Code) & CrazyT (Structure)",
+<<<<<<< HEAD
     "location": "File > Import-Export > Mod3/MHW",
     "version": (1,5,0)
+=======
+    "location": "File > Import-Export",
+    "version": (2,0,1),
+    "blender": (2, 80, 0)
+>>>>>>> origin/master
 }
  
 import bpy
 
 from .operators.mod3import import ImportMOD3
 from .operators.mod3export import ExportMOD3
-from .operators.mod3import import menu_func_import as mhw_model_menu_func_import
-from .operators.mod3export import menu_func_export as mhw_model_menu_func_export
+from .operators.mod3import import menu_func_import
+from .operators.mod3export import menu_func_export
+
+classes = (
+    ImportMOD3,
+    ExportMOD3,
+)
 
 def register():
-    bpy.utils.register_class(ImportMOD3)
-    bpy.utils.register_class(ExportMOD3)
-    bpy.types.INFO_MT_file_import.append(mhw_model_menu_func_import)
-    bpy.types.INFO_MT_file_export.append(mhw_model_menu_func_export)
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 def unregister():
-    bpy.utils.unregister_class(ImportMOD3)
-    bpy.utils.unregister_class(ExportMOD3)
-    bpy.types.INFO_MT_file_import.remove(mhw_model_menu_func_import)
-    bpy.types.INFO_MT_file_export.remove(mhw_model_menu_func_export)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
-    try:
-        unregister()
-    except:
-        pass
     register()

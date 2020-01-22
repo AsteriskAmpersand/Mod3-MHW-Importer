@@ -79,7 +79,7 @@ class BlenderExporterAPI(ModellingAPI):
     def showMessageBox(message = "", title = "Message Box", icon = 'INFO'):
     
         def draw(self, context):
-            self.layout.label(message)
+            self.layout.label(text=message)
     
         bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
     
@@ -152,7 +152,11 @@ class BlenderExporterAPI(ModellingAPI):
                 else:
                     childless.append(o)
         return childed if childed else childless
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> origin/master
     @staticmethod
     def isCandidateRoot(rootCandidate):
         if rootCandidate.type !="EMPTY" or rootCandidate.parent:
@@ -169,7 +173,10 @@ class BlenderExporterAPI(ModellingAPI):
         else:
             return True
         
+<<<<<<< HEAD
     
+=======
+>>>>>>> origin/master
     @staticmethod
     def verifyLoad(source, propertyName, errorHandler, storage):
         if propertyName in source:
@@ -191,7 +198,7 @@ class BlenderExporterAPI(ModellingAPI):
             #Check Child Constraint
             bone["child"] = BlenderExporterAPI.getTarget(child, errorHandler)
             LMatrix= child.matrix_local.copy()
-            AMatrix= LMatrix.inverted()*(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
+            AMatrix= LMatrix.inverted()@(storage[pix]["AMatrix"] if len(storage) and pix != 255  else Matrix.Identity(4))
             bone["x"], bone["y"], bone["z"] = (LMatrix[i][3] for i in range(3))
             bone["parentId"] = pix
             bone["length"]=math.sqrt(bone["x"]**2 +bone["y"]**2+ bone["z"]**2)
@@ -284,7 +291,6 @@ class BlenderExporterAPI(ModellingAPI):
             vTangent = list(map(round, loop.tangent*127)) + [int(loop.bitangent_sign)*127]
             if loop.vertex_index in normals and \
                 any([not (-1<=(c0-c1)<=1) for c0,c1 in zip(normals[loop.vertex_index],vNormal) ]):
-                bpy.context.scene.cursor_location = mesh.vertices[loop.vertex_index].co
                 errorHandler.duplicateNormal(loop.vertex_index, vNormal, vTangent, normals)
             else:
                 normals[loop.vertex_index] = vNormal
@@ -315,7 +321,7 @@ class BlenderExporterAPI(ModellingAPI):
             colorLayer = mesh.data.vertex_colors[0].data
         vertColor = {}
         for loop, colorLoop in zip(mesh.data.loops, colorLayer):
-            color = list(map(int,colorLoop.color*255))+[255]
+            color = list(map(int,Vector(colorLoop.color)*255))
             vertIndex = loop.vertex_index
             if vertIndex in vertColor and color != vertColor[vertIndex]:
                 errorHandler.duplicateColor(vertIndex, Vector(color), vertColor)
