@@ -96,17 +96,18 @@ class MRL3Material():
     def serialize(self):
         return self.Header.serialize()+b''.join(map(lambda x: x.serialize(),self.textureArguments))+self.paramArray.serialize()
     
-    def getAlbedoIndex(self):
+    def getMapIndex(self, typing = "Albedo"):
         for resource in self.resourceBindings:
-            if "Albedo".upper() in resource.mapTypeName.upper():
+            if typing.upper() in resource.mapTypeName.upper():
                 return resource.texIdx
-        return 0
+        return -1 if not typing == "Albedo" else 1
     
 class MRL3():
     def __init__(self):
         self.Header = MRL3Header()
         self.Textures = []
         self.Materials = []
+        self.Typing = "Albedo"
         
     def marshall(self, file):
         self.Header.marshall(file)
@@ -121,8 +122,18 @@ class MRL3():
         idHash = generalhash(materialString)
         for material in self.Materials:
             if material.Header.materialNameHash == idHash:
-                index = material.getAlbedoIndex()-1
+                index = material.getMapIndex(self.Typing)-1
                 if index < 0 or index > len(self.Textures):
                     raise KeyError
                 return self.Textures[index].path.replace("\x00","")
         raise KeyError
+        
+    def getMaterial(self,materialString,materialType):
+        self.Typing = materialType
+        try:
+            material = self[materialString]
+            self.Typing = "Albedo"
+            return material
+        except:
+            self.Typing = "Albedo"
+            raise
