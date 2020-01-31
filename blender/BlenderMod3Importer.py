@@ -137,7 +137,10 @@ class BlenderImporterAPI(ModellingAPI):
                 BlenderImporterAPI.dbg.write("\tLoading Colours\n")
                 vcol_layer = blenderMesh.vertex_colors.new()
                 for l,col in zip(blenderMesh.loops, vcol_layer.data):
-                    col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])[:3]
+                    try:
+                        col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])
+                    except:
+                        col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])[:3]
             #UVs
             BlenderImporterAPI.dbg.write("\tLoading UVs\n")
             for ix, uv_layer in enumerate(meshpart["uvs"]):
