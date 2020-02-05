@@ -26,7 +26,10 @@ from ..common.crc import CrcJamcrc
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
 
 def fixpath(path):
-    return os.path.abspath(os.path.expanduser(path))
+
+    if os.name == 'posix':
+        return path.replace("\\","/")
+    return path
 
 class MRL3Header(CS.PyCStruct):
     fields = OrderedDict([

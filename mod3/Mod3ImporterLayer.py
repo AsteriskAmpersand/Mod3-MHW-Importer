@@ -139,12 +139,17 @@ class Mod3ToModel():
 ###Material Structuring
 ###############################################################################
 ###############################################################################
+from ..blender.BlenderMod3Importer import BlenderImporterAPI
 
 def materialPathForkingResolution(modelPath, texturePath, chunkPath):
+    BlenderImporterAPI.dbg.write("\tModel Path: %s\n"%modelPath)
+    BlenderImporterAPI.dbg.write("\tTexture Path: %s\n"%texturePath)
+    BlenderImporterAPI.dbg.write("\tChunk Path: %s\n"%chunkPath)
     filename = os.path.basename(texturePath)
     modelFolder = os.path.dirname(os.path.abspath(modelPath))
-    pathCandidates = [os.path.join(modelFolder,filename), os.path.join(chunkPath,texturePath)]
+    pathCandidates = [os.path.join(chunkPath,texturePath), os.path.join(modelFolder,filename)]
     for path in pathCandidates:
+        BlenderImporterAPI.dbg.write("\tAttempting: %s\n"%path)
         if os.path.exists(path+".PNG"):
             return path
         elif os.path.exists(path+".dds"):
