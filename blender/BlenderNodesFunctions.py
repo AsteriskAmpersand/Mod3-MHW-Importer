@@ -30,9 +30,16 @@ def materialSetup(blenderObj,*args):
 def principledSetup(nodeTree):
     bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfPrincipled")
     bsdfNode.name = "Principled BSDF"
+    endNode = bsdfNode
     diffuseNode = yield
     if diffuseNode:
+        transparentNode = nodeTree.nodes.new(type="ShaderNodeBsdfTransparent")
+        alphaMixerNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
         nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
+        nodeTree.links.new(diffuseNode.outputs[1],alphaMixerNode.inputs[0])
+        nodeTree.links.new(transparentNode.outputs[0],alphaMixerNode.inputs[1])
+        nodeTree.links.new(endNode.outputs[0],alphaMixerNode.inputs[2])
+        endNode = alphaMixerNode
     normalNode = yield
     if normalNode:
         nodeTree.links.new(normalNode.outputs[0],bsdfNode.inputs["Normal"])
@@ -47,14 +54,12 @@ def principledSetup(nodeTree):
     emissiveNode = yield
     if emissiveNode:
         addNode = nodeTree.nodes.new(type="ShaderNodeAddShader")
-        nodeTree.links.new(bsdfNode.outputs[0],addNode.inputs[0])
+        nodeTree.links.new(endNode.outputs[0],addNode.inputs[0])
         nodeTree.links.new(emissiveNode.outputs[0],addNode.inputs[1])
         #Create Add Node for emissive and mix shader with emissive
-        result = addNode
-    else:
-        result = bsdfNode
+        endNode = addNode
     yield
-    yield result
+    yield endNode
 
 def diffuseSetup(nodeTree,texture,*args):
     #Create DiffuseTexture
