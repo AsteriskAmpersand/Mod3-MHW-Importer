@@ -8,6 +8,7 @@ Created on Sun Jan 13 00:07:45 2019
 from collections import OrderedDict
 import os
 try:
+    from ..common.crc import CrcJamcrc
     from ..common import Cstruct as CS
     from ..mrl3.maptype import maptypeTranslation
 except:
@@ -15,13 +16,14 @@ except:
     sys.path.insert(0, r'..\common')
     sys.path.insert(0, r'..\mrl3')
     import Cstruct as CS
+    from crc import CrcJamcrc
     from maptype import maptypeTranslation
 
 translation = lambda x: maptypeTranslation[x>>12]
 intBytes = lambda x: int.from_bytes(x, byteorder='little', signed=False)
 hex_read = lambda f,x: intBytes(f.read(x))
 
-from ..common.crc import CrcJamcrc
+
 #from crccheck.crc import CrcJamcrc
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
 
