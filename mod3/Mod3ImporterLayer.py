@@ -17,6 +17,7 @@ except:
     import Mrl3
     import TextureConverter    
 
+from ..blender.BlenderMod3Importer import BlenderImporterAPI
 
 class CorruptModel(Exception):
     pass
@@ -106,12 +107,13 @@ class Mod3ToModel():
         try:
             materialFile = open(materialPath,"rb")
         except:
-            print("No MRL3 found in model directory")
+            BlenderImporterAPI.dbg.write("\tNo MRL3 found in model directory")
             raise
         try:
             self.material.marshall(materialFile)
         except Exception as e:
-            print("Unable to read corrupted MRL3")
+            BlenderImporterAPI.dbg.write("\tUnable to read corrupted MRL3.")
+            BlenderImporterAPI.dbg.write("\t\t%s."%str(e))
             print(str(e))
             raise
     
@@ -139,7 +141,6 @@ class Mod3ToModel():
 ###Material Structuring
 ###############################################################################
 ###############################################################################
-from ..blender.BlenderMod3Importer import BlenderImporterAPI
 
 def materialPathForkingResolution(modelPath, texturePath, chunkPath):
     BlenderImporterAPI.dbg.write("\tModel Path: %s\n"%modelPath)
