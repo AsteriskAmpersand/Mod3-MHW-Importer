@@ -328,7 +328,7 @@ class BlenderExporterAPI(ModellingAPI):
     def weightHandling(weightGroups, skeletonMap, groupNameFunction, errorHandler):
         parsedGroups = [(groupNameFunction(group.group), group.weight) for group in weightGroups if errorHandler.testGroupFunction(groupNameFunction,group.group) ]
         validGroupName = lambda w: BlenderExporterAPI.validGroupName(w, skeletonMap, errorHandler)
-        weights = BufferedWeights([BufferedWeight(weightName,skeletonMap,weightVal) for weightName, weightVal in parsedGroups if validGroupName(weightName)],errorHandler)
+        weights = BufferedWeights([BufferedWeight(weightName,skeletonMap,weightVal) for weightName, weightVal in parsedGroups if validGroupName(weightName) and not math.isnan(weightVal)],errorHandler)
         return weights
         #Handle Cases    
         #            preliminaryGroups = [(groupName(group.group),group.weight) for group in vertex.groups if BlenderExporterAPI.validGroupName(groupName(group.group), skeletonMap, options.errorHandler)]
