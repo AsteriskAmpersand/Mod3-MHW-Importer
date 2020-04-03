@@ -44,10 +44,10 @@ class ExporterSettings():
             idx = 0
         else:
             try:
-                idx = materialList.index(meshprops["material"])
+                idx = materialList.index(meshprops["material"].ljust(128,'\x00'))
             except:
                 idx = len(materialList)
-                materialList.append(meshprops["material"])
+                materialList.append(meshprops["material"].ljust(128,'\x00'))
         return idx
     
     def polyfaces(self, face):
