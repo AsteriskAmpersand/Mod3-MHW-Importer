@@ -286,7 +286,7 @@ class BlenderImporterAPI(ModellingAPI):
             if a.type == 'VIEW_3D':
                 for s in a.spaces:
                     if s.type == 'VIEW_3D':
-                        s.clip_end = 10**9
+                        s.clip_end = 10**3
                         
 # =============================================================================
 # Helper Methods

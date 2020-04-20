@@ -47,10 +47,6 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import File Header.",
         description = "Imports file headers as scene properties.",
         default = True)
-    independent_skeleton = BoolProperty(
-        name = "Preserve Mesh-Skeleton Independence",
-        description = "Avoids applying modifiers to mesh that force-link it to the skeleton.",
-        default = True)
     import_meshparts = BoolProperty(
         name = "Import Meshparts.",
         description = "Imports mesh parts as meshes.",
@@ -127,9 +123,6 @@ class ImportMOD3(Operator, ImportHelper):
             options["Mesh Unknown Properties"]=True
         if self.high_lod:
             options["Only Highest LOD"]=True
-        if self.import_skeleton != "None" and self.import_meshparts and self.weight_format == "Group":
-            if not self.independent_skeleton or self.import_skeleton != "EmptyTree":
-                options["Skeleton Modifier"]= self.import_skeleton
         if self.import_textures:
             options["Import Textures"]=self.texture_path
         if self.import_materials:

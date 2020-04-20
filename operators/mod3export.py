@@ -39,7 +39,11 @@ class ExportMOD3(Operator, ExportHelper):
         name = "Coerce 4th Negative Weight",
         description = "Forces non-explicit 4 weight vertices into a 4 weight blocktype.",
         default = True)
-    
+    export_hidden = BoolProperty(
+        name = "Export Hidden Meshes",
+        description = "Also exports hidden meshes.",
+        default = True            
+        )
     errorItems = [("Ignore","Ignore","Will not log warnings. Catastrophical errors will still break the process.",0),
                   ("Warning","Warning","Will be logged as a warning. This are displayed in the console. (Window > Toggle_System_Console)",1),
                   ("Error","Error","Will stop the exporting process. An error will be displayed and the log will show details. (Window > Toggle_System_Console)",2),
@@ -93,6 +97,7 @@ class ExportMOD3(Operator, ExportHelper):
                 "levels":{prop:self.__getattribute__(prop) for prop in self.levelProperties},
                 "splitnormals":self.split_normals,
                 "coerce":self.coerce_fourth,
+                "hidden":self.export_hidden
                 }        
         return options
     

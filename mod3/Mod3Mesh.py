@@ -210,7 +210,11 @@ class Mod3MeshCollection():
         
     def marshall(self, data):
         for mesh in self.Meshes:
-            mesh.marshall(data)
+            pos = data.tell()
+            try:
+                mesh.marshall(data)
+            except:
+                data.seek(pos+len(Mod3MeshPartHeader()))
         self.MeshProperties.marshall(data)
         
     def serialize(self):

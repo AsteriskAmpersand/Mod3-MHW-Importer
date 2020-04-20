@@ -59,16 +59,13 @@ class Mod3ToModel():
                 excecute.append(lambda c: self.importMaterials(c, options["Import Materials"]))
         if "Mesh Unknown Properties" in options:
             excecute.append(lambda c: self.setMeshProperties(c))
-        if "Skeleton Modifier" in options:
-            linkOperator = {"EmptyTree":self.linkEmptyTree, 
-                        "Armature":self.linkArmature}[options["Skeleton"]]
-            excecute.append(lambda c: linkOperator(c))
+        if "Skeleton" in options and options["Skeleton"] == "Armature":
+            excecute.append(lambda c: self.linkArmature(c))
         if "Max Clip" in options:
             excecute.append(lambda c: self.maximizeClipping(c))
         if "Override Defaults" in options:
             excecute.append(lambda c: self.overrideMeshDefaults(c))
         self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
-        #Max clipping distance?
         return excecute
     
     def overrideMeshDefaults(self, c):

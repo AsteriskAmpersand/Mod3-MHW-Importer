@@ -133,7 +133,8 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.setSection("Meshes")
         options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
         meshes = sorted([o for o in bpy.context.scene.objects if o.type=="MESH"], key=lambda x: x.data.name)
-        meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) for mesh in meshes]
+        meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) 
+                    for mesh in meshes if options.exportHidden or not mesh.hide]
         options.validateMaterials(materials)
         options.executeErrors()
         return meshlist, materials

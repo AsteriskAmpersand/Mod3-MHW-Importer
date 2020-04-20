@@ -30,6 +30,7 @@ class ExporterSettings():
         self.materialsAdded = False
         self.setHighestLoD = options["lod"]
         self.splitNormals = options["splitnormals"]
+        self.exportHidden = options["hidden"]
         
     def validateMaterials(self, materials):
         if self.materialsAdded and not materials:
