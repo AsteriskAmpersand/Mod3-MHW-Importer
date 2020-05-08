@@ -80,6 +80,7 @@ class BlenderImporterAPI(ModellingAPI):
             if "Bone.%03d"%ix not in miniscene:
                 BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
         miniscene["Bone.%03d"%255].name = '%s Armature'%processPath(context.path)
+        miniscene["Bone.%03d"%255]["Type"] = "SkeletonRoot"
         BlenderImporterAPI.linkChildren(miniscene)
         context.armature = miniscene
         return   
