@@ -146,29 +146,29 @@ class BlenderExporterAPI(ModellingAPI):
     def getRootEmpty():
         childless = []
         childed = []
+        explicitRoot = []
+        rankings = {1:childless,2:childed,3:explicitRoot}
         for o in bpy.context.scene.objects:
-            if BlenderExporterAPI.isCandidateRoot(o):
-                if o.children:
-                    childed.append(o)
-                else:
-                    childless.append(o)
-        return childed if childed else childless
+            hierarchy = BlenderExporterAPI.isCandidateRoot(o)
+            if hierarchy:
+                rankings[hierarchy].append(o)
+        return explicitRoot if explicitRoot else childed if childed else childless
     
     @staticmethod
     def isCandidateRoot(rootCandidate):
         if rootCandidate.type !="EMPTY" or rootCandidate.parent:
-            return False
+            return 0
         if "Type" in rootCandidate:
             if rootCandidate["Type"] == "SkeletonRoot":
-                return True
+                return 3
             else:
-                return False        
+                return 0        
         if "boneFunction" in rootCandidate:
-            return False
+            return 0
         if rootCandidate.children:
-            return any(("boneFunction" in child for child in rootCandidate.children))
+            return any(("boneFunction" in child for child in rootCandidate.children))*2
         else:
-            return True
+            return 1
         
     
     @staticmethod

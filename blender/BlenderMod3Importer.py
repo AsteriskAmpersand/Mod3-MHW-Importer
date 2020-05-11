@@ -245,7 +245,9 @@ class BlenderImporterAPI(ModellingAPI):
         mo=meshObject
         BlenderImporterAPI.dbg.write("\t\tImporting Material to Mesh\n")
         qf = lambda y: lambda x: textureFetch(x,y)
-        nodeTree = materialSetup(meshObject)
+        nodeTree = materialSetup(mo)
+        if nodeTree is None:
+            return
         preapplyTree = lambda x: lambda y: x(nodeTree,y)
         mainNode = principledSetup(nodeTree)
         next(mainNode)
