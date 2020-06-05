@@ -40,33 +40,38 @@ class Mod3ToModel():
             #self.api.resetContext(context)
             
     def parseOptions(self, options):
-        excecute = []
+        execute = []
         if "Clear" in options:
-            excecute.append(lambda c: self.clearScene(c))
+            execute.append(lambda c: self.clearScene(c))
         if "Scene Header" in options:
-            excecute.append(lambda c: self.setScene(c))
+            execute.append(lambda c: self.setScene(c))
         if "Skeleton" in options:
             skeletonOperator = {"EmptyTree":self.createEmptyTree, 
                         "Armature":self.createArmature}[options["Skeleton"]]
-            excecute.append(lambda c: skeletonOperator(c))
+            execute.append(lambda c: skeletonOperator(c))
         if "Only Highest LOD" in options:
-            excecute.append(lambda c: self.filterToHighestLOD(c))
+            execute.append(lambda c: self.filterToHighestLOD(c))
         if "Mesh Parts" in options:
-            excecute.append(lambda c: self.createMeshParts(c))
+            execute.append(lambda c: self.createMeshParts(c))
             if "Import Textures" in options:
-                excecute.append(lambda c: self.importTextures(c, options["Import Textures"]))
+                execute.append(lambda c: self.importTextures(c, options["Import Textures"]))
             if "Import Materials" in options:
-                excecute.append(lambda c: self.importMaterials(c, options["Import Materials"]))
+                execute.append(lambda c: self.importMaterials(c, options["Import Materials"]))
         if "Mesh Unknown Properties" in options:
-            excecute.append(lambda c: self.setMeshProperties(c))
+            execute.append(lambda c: self.setMeshProperties(c))
         if "Skeleton" in options and options["Skeleton"] == "Armature":
-            excecute.append(lambda c: self.linkArmature(c))
+            execute.append(lambda c: self.linkArmature(c))
         if "Max Clip" in options:
-            excecute.append(lambda c: self.maximizeClipping(c))
+            execute.append(lambda c: self.maximizeClipping(c))
         if "Override Defaults" in options:
-            excecute.append(lambda c: self.overrideMeshDefaults(c))
+            execute.append(lambda c: self.overrideMeshDefaults(c))
+        if "Load Groups and Functions" in options:
+            execute.append(lambda c: self.loadGroupsFunctions(c))
         self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
-        return excecute
+        return execute
+    
+    def loadGroupsFunctions(self,c):
+        self.api.loadBoundingBoxes(self.model.boundingBoxes(),c)
     
     def overrideMeshDefaults(self, c):
         self.api.overrideMeshDefaults(c)

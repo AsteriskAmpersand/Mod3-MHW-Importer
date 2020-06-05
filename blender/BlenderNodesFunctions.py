@@ -19,8 +19,9 @@ def createTexNode(nodeTree,color,texture,name):
     node.name = name
     return node
 
-def materialSetup(blenderObj,*args):
+def materialSetup(filename,blenderObj,*args):
     matName = blenderObj.data["material"].replace("\x00","") if "material" in blenderObj.data else "RenderMaterial"
+    matName = filename + "_" + matName
     bpy.context.scene.render.engine = 'CYCLES'
     if matName in bpy.data.materials:
         blenderObj.data.materials.append(bpy.data.materials[matName])
@@ -73,10 +74,10 @@ def principledSetup(nodeTree):
         nodeTree.links.new(splitter.outputs[2],translucentMixerNode.inputs[0])
         nodeTree.links.new(translucencyNode.outputs[0],translucentMixerNode.inputs[1])
         
-        nodeTree.links.new(endNode.outputs[0],translucentMixerNode.inputs[2])
-        nodeTree.links.new(subsurface.outputs[1],bsdfNode.inputs[1])
+        #nodeTree.links.new(endNode.outputs[0],translucentMixerNode.inputs[2])
+        #nodeTree.links.new(subsurface.outputs[1],bsdfNode.inputs[1])
         if diffuseNode: nodeTree.links.new(diffuseNode.outputs[1],bsdfNode.inputs[3])
-        endNode = translucentMixerNode
+        #endNode = translucentMixerNode
         
     emissiveNode = yield
     if emissiveNode:
@@ -120,11 +121,14 @@ def specularSetup(nodeTree,texture,*args):
     #Create SpecularityMaterial
     specularNode = createTexNode(nodeTree,"NONE",texture,"Specular Texture")
     #Create RGB Curves
-    curveNode = nodeTree.nodes.new(type="ShaderNodeRGBCurve")
-    curveNode.name = "Specular Curve"
+    splitterNode = nodeTree.nodes.new(type="ShaderNodeSeparateRGB")
+    splitterNode.name = "FX Splitter"
+    #setLocation(splitterNode,(2,1))
+    
     #Plug Specularity Color to RGB Curves (color -> color)
-    nodeTree.links.new(specularNode.outputs[0],curveNode.inputs[0])
-    return curveNode
+    nodeTree.links.new(specularNode.outputs[0],splitterNode.inputs[0])
+    splitterNode = None #Comment out to renable
+    return splitterNode
     
 def emissionSetup(nodeTree,texture,*args):
     return "" #Commented out, it's not really possible to work withit without the parameters

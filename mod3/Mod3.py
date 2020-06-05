@@ -30,7 +30,7 @@ class Mod3():
         self.Header = self.Header()
         self.Header.marshall(data)
         data.seek(self.Header.boneOffset)
-        self.Skeleton = self.Skeleton(self.Header.boneCount, self.Header.boneMapCount)
+        self.Skeleton = self.Skeleton(self.Header.boneCount)
         self.Skeleton.marshall(data)
         data.seek(self.Header.groupOffset)
         self.GroupProperties = self.GroupProperties(self.Header.groupCount)
@@ -48,7 +48,7 @@ class Mod3():
     def construct(self, fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, meshData, trailingData):
         self.Header = self.Header()
         self.Header.construct(fileHeader)
-        self.Skeleton = self.Skeleton(len(skeleton), None)
+        self.Skeleton = self.Skeleton(len(skeleton))
         self.Skeleton.construct(skeleton,lmatrices,amatrices)
         self.GroupProperties = self.GroupProperties(self.Header.groupCount)
         self.GroupProperties.construct(groupStuff)
@@ -94,8 +94,6 @@ class Mod3():
         self.Header.vertexBufferSize = vBufferLen
         #("secondBufferSize","long"),#unused
         #("groupCount","uint64"),#unchanged
-        #("boneMapCount","uint64"),
-        #self.Header.boneMapCount = self.Skeleton.Count()
         self.Header.boneCount = self.Skeleton.Count()
         
         currentOffset = len(self.Header)
@@ -133,6 +131,9 @@ class Mod3():
         serialization+=self.Trailing.serialize()
         return serialization
     
+    def boundingBoxes(self):
+        return self.MeshParts.boundingBoxes()
+    
     def sceneProperties(self):
         sceneProp = self.Header.sceneProperties()
         sceneProp.update(self.Materials.sceneProperties())
@@ -165,3 +166,61 @@ def doublesidedEval(v1, v2):
         print(v1)
         print(v2)
         raise ValueError()
+        
+if __name__ in "__main__":
+    sys.path.insert(0, r'..\common')
+    import FileLike as FL
+    from pathlib import Path
+    
+    chunkpath = Path(r"E:\MHW\chunkG0")
+    maxing = 2
+    path = ""
+    for modelf in chunkpath.rglob("*.mod3"):
+        modelfile = FL.FileLike(modelf.open("rb").read())
+        model = Mod3()
+        model.marshall(modelfile)
+        if model.Header.groupCount > 2:
+            print(modelf)
+            if model.Header.groupCount > maxing:
+                maxing = model.Header.groupCount
+                path = modelf
+    print("Max found with %d at %s"%(maxing,path))
+        
+    def getMonsterMakeDate():
+        import time
+        import datetime
+        
+        chunkpath = Path(r"E:\MHW\chunkG0\em")
+        superset = set()
+        dateList = []
+        for modelf in chunkpath.rglob("*.mod3"):
+            modelfile = FL.FileLike(modelf.open("rb").read())
+            model = Mod3()
+            model.marshall(modelfile)
+            dateList.append((modelf,time.ctime(model.Header.creationDate)))
+            
+            
+        codes = r"G:\Wisdom\MonsterCodes.csv"
+        renaming = {line.split(",")[0].lower():line.split(",")[1].replace("\n","") for line in open(codes,"r").readlines()}
+        def convert(monsterfile):
+            parts = monsterfile.split("_")
+            if "ems" in parts[0]:
+                return "Small Monster %s"%parts[1]
+            return "%s %s %s"%(renaming[parts[0]],{
+                    "00":"","01":"Subspecies","02":"Rare Species","05":"Variant",
+                    "03":"Deviant","horn":"Horn","rock":"Rock","bombrock":"Bomb Rock",
+                    "hardrock":"Hard Rock"}[parts[1]],' '.join(parts[2:]))
+        for entry in sorted(dateList,key = lambda x: datetime.datetime.strptime(x[1], "%a %b %d %H:%M:%S %Y")):
+            print("%s: %s"%(convert(entry[0].stem),str(entry[1])))
+            #print(modelf)
+            #print(time.ctime(model.Header.creationDate))
+"""
+        #model.GroupProperties
+        trail = model.Trailing.sceneProperties()["TrailingData"]
+        if trail not in superset:
+            print(modelf)
+            print(trail)
+        superset.add(trail)
+        #raise
+    print(superset)
+"""     

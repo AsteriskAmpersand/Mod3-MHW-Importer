@@ -18,6 +18,7 @@ bl_info = {
  
 import bpy
 
+from .operators.mod3properties import symmetricPair
 from .operators.mod3import import ImportMOD3
 from .operators.mod3export import ExportMOD3
 from .operators.mod3import import menu_func_import as mhw_model_menu_func_import
@@ -28,12 +29,16 @@ def register():
     bpy.utils.register_class(ExportMOD3)
     bpy.types.INFO_MT_file_import.append(mhw_model_menu_func_import)
     bpy.types.INFO_MT_file_export.append(mhw_model_menu_func_export)
+    
+    bpy.types.Object.MHW_Symmetric_Pair = symmetricPair
 
 def unregister():
     bpy.utils.unregister_class(ImportMOD3)
     bpy.utils.unregister_class(ExportMOD3)
     bpy.types.INFO_MT_file_import.remove(mhw_model_menu_func_import)
     bpy.types.INFO_MT_file_export.remove(mhw_model_menu_func_export)
+    
+    del bpy.types.Object.MHW_Symmetric_Pair
 
 if __name__ == "__main__":
     try:

@@ -6,6 +6,7 @@ Created on Tue Mar  5 22:36:21 2019
 """
 
 from collections import OrderedDict, Counter
+from mathutils import Vector, Matrix
 try:
     from ..common import Cstruct as CS
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
@@ -128,14 +129,14 @@ class Mod3Mesh():
         result = {}
         for ix, (bone, weight) in enumerate(zippedWeightBones[:-1]):
             if bone in currentBones:
-                bone,_ = "(%03d,%d%s)"%(bone,currentBones[bone],extension(ix)), currentBones.update([bone])
+                boneName,_ = (bone,"%d%s"%(currentBones[bone],extension(ix))), currentBones.update([bone])
             else:
                 currentBones[bone]=1
-                bone = "(%03d,%d%s)"%(bone,0,extension(ix)) 
-            result[bone]=max(weight,0.0)
+                boneName = (bone,"%d%s"%(0,extension(ix)))
+            result[boneName]=max(weight,0.0)
         bone, weight = zippedWeightBones[-1]
-        bone = "(%03d,%d%s)"%(bone, -1, extension(ix+1))
-        result[bone]=max(weight,0.0)
+        boneName = (bone,"%d%s"%(-1, extension(ix+1)))
+        result[boneName]=max(weight,0.0)
         return result
     
     @staticmethod
@@ -291,6 +292,9 @@ class Mod3MeshCollection():
     def sceneProperties(self):
         return self.MeshProperties.sceneProperties()
     
+    def boundingBoxes(self):
+        return self.MeshProperties.boundingBoxes()
+    
     def __getitem__(self, ix):
         return self.Meshes[ix]
     
@@ -324,13 +328,48 @@ class Mod3Face(CS.PyCStruct):
         for field in self.fields:
             self.__setattr__(field, self.__getattribute__(field)+adjustment)
         
-       
+class BoundingBox():
+    def __init__(self,mod3bb):
+        self._center = Vector(mod3bb.center)
+        self._dimensions = Vector((Vector(mod3bb.boxMax)-Vector(mod3bb.boxMin))[:3])
+        mat = mod3bb.matrix
+        #rows = [[mat[i+4*e] for e in range(4)] for i in range(4)]
+        rows = [[mat[4*i+e] for e in range(4)] for i in range(4)]
+        self._matrix = Matrix(rows)
+        self._vector = Vector(mod3bb.vector)[:3]
+        self._boneIndex = mod3bb.boneIndex
+        self._metadata = {field:getattr(mod3bb,field) for field in Mod3MeshProperty.fields}
+    def center(self):
+        return self._center
+    def scale(self):
+        return self._dimensions
+    def metadata(self):
+        return self._metadata
+    def matrix(self):
+        return self._matrix
+    def vector(self):
+        return self._vector
+    def bone(self):
+        return self._boneIndex
+    
+
 class Mod3MeshProperty(CS.PyCStruct):
-    fields = OrderedDict([("properties","int32[36]")])
+    fields = OrderedDict([
+            ("boneIndex","int"),
+            ("spacer","int[3]"),
+            ("center","float[3]"),
+            ("radius","float"),
+            ("boxMin","float[4]"),
+            ("boxMax","float[4]"),
+            ("matrix","float[16]"),
+            ("vector","float[4]"),
+            ])
     requiredProperties = { f for f in fields }
     def sceneProperties(self):
-        return self.properties
-        
+        return {field:getattr(self,field) for field in self.fields}
+    def boundingBox(self):
+        return BoundingBox(self)
+
 class Mod3MeshProperties(CS.PyCStruct):
     fields = OrderedDict([("count","uint")])
     
@@ -340,9 +379,21 @@ class Mod3MeshProperties(CS.PyCStruct):
         [x.marshall(data) for x in  self.properties]
         
     def construct(self, data):
+        data = self.decompose(data)
         self.count = len(data)
         self.properties = [Mod3MeshProperty() for _ in range(self.count)]
-        [x.construct({"properties":list(prop)}) for x,prop in zip(self.properties,data)]
+        [x.construct({prop:data[index][prop] for prop in data[index]}) for x,index in zip(self.properties,sorted(data.keys()))]
+        return self
+    
+    def decompose(self,propertyMass):
+        indices = {}
+        for prop in propertyMass:
+            count,propName = prop.split(":")
+            count = int(count.replace("MeshProperty",""))
+            if count not in indices:
+                indices[count]={}
+            indices[count][propName] = propertyMass[prop]
+        return indices
     
     def serialize(self):
         return super().serialize() + b''.join([prop.serialize() for prop in self.properties])
@@ -351,9 +402,12 @@ class Mod3MeshProperties(CS.PyCStruct):
         return super().__len__() + sum([len(prop) for prop in self.properties])
     
     def sceneProperties(self):
-        properties = {"MeshProperty%d"%ix:propertyFamily.sceneProperties() for ix, propertyFamily in enumerate(self.properties)}
+        properties = {"MeshProperty%d:%s"%(ix,prop):val for ix, propertyFamily in enumerate(self.properties) for prop,val in propertyFamily.sceneProperties().items()}
         properties["MeshPropertyCount"]=self.count
         return properties
+    
+    def boundingBoxes(self):
+        return [prop.boundingBox() for prop in self.properties]
     
     def verify(self):
         if self.count == None:

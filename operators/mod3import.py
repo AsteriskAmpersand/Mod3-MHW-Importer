@@ -87,6 +87,11 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Override Default Mesh Properties.",
         description = "Overrides program defaults with default properties from the first mesh in the file.",
         default = False)
+    load_group_functions = BoolProperty(
+        name = "Load Unknown Group Functions and Mesh Unknown Blocks.",
+        description = "Loads the unmapped sections of the mod3 as bounding boxes.",
+        default = False,
+        )
 
     def execute(self,context):
         try:
@@ -97,7 +102,7 @@ class ImportMOD3(Operator, ImportHelper):
         Mod3File = FL.FileLike(open(self.properties.filepath,'rb').read())
         BApi = Api.BlenderImporterAPI()
         options = self.parseOptions()
-        blenderContext = Context(self.properties.filepath,None,None)
+        blenderContext = Context(self.properties.filepath,{},None)
         with BlenderSupressor.SupressBlenderOps():
             Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)   
             bpy.ops.object.select_all(action='DESELECT')
@@ -129,6 +134,8 @@ class ImportMOD3(Operator, ImportHelper):
             options["Import Materials"]=self.texture_path
         if self.override_defaults:
             options["Override Defaults"]=self.texture_path
+        if self.load_group_functions:
+            options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format
         return options
     

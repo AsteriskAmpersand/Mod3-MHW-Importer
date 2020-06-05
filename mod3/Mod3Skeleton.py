@@ -118,10 +118,10 @@ class StateError(Exception):
     pass
 
 class Mod3SkelletalStructure():   
-    def __init__(self, boneCount, boneMapCount):
+    def __init__(self, boneCount):
         self.Skeleton = Mod3Skeleton(boneCount)
         self.Matrices = Mod3MatrixBundle(boneCount)
-        self.BoneMap = Mod3BoneMap(boneCount, boneMapCount)
+        self.BoneMap = Mod3BoneMap(boneCount)
         
     def marshall(self, data):
         self.Skeleton.marshall(data)
@@ -172,22 +172,22 @@ class Mod3SkelletalStructure():
 
 
 class Mod3BoneMap(CS.PyCStruct):
-    boneMapCount = 512
-    def __init__(self,boneCount, boneMapCount):
-        self.boneMapCount = Mod3BoneMap.boneMapCount*(boneCount!=0)
-        self.fields = OrderedDict([('boneMap','ubyte[%d]'%self.boneMapCount)])
+    boneRemapCount = 512
+    def __init__(self,boneCount):
+        self.boneRemapCount = Mod3BoneMap.boneRemapCount*(boneCount!=0)
+        self.fields = OrderedDict([('boneRemap','ubyte[%d]'%self.boneRemapCount)])
         super().__init__()
     
     def unfold(self):#Bone map to dictionary of bones with their "animation position"
         boneProperties = {}
-        for entryNum, mapping in enumerate(self.boneMap):
+        for entryNum, mapping in enumerate(self.boneRemapCount):
             if mapping not in boneProperties:
                 boneProperties[mapping]=entryNum
             else:
                 raise ValueError("Bone %d has multiple functions assigned by the BoneMap."%mapping)
             
     def fold(self, skeleton):#skeleton with custom property to bonemap)
-        self.boneMap = [255]*self.boneMapCount
+        self.boneRemap = [255]*self.boneRemapCount
         for bIndex, bone in enumerate(skeleton):
             if not bone.boneFunction == 512:
-                self.boneMap[bone.boneFunction] = bIndex
+                self.boneRemap[bone.boneFunction] = bIndex

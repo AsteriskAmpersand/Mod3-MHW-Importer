@@ -100,7 +100,7 @@ class ErrorHandler():
     propertyDefaults = {"boneFunction":512, "child":255,
                         "MeshProperty":[0]*36,
                         "GroupProperty":0,
-                        "MeshPropertyCount":0, "boneMapCount":0xFFFFFFF,
+                        "MeshPropertyCount":0, "creationDate":0,
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
                         "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":[0]*39,
                         "hUnkn1":[0]*38, "hUnkn2":[0]*64,

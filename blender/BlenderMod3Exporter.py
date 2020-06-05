@@ -17,6 +17,7 @@ try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..mod3.Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
+    from ..mod3.Mod3Mesh import Mod3MeshProperty
     from ..blender.BlenderSupressor import SupressBlenderOps
     from ..blender.BlenderNormals import denormalize
     from ..common.crc import CrcJamcrc
@@ -27,6 +28,7 @@ except:
     from Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from Mod3VertexBuffer import Mod3Vertex
     from ModellingApi import ModellingAPI, debugger
+    from Mod3Mesh import Mod3MeshProperty
     from BlenderSupressor import SupressBlenderOps
     from crc import CrcJamcrc
     
@@ -98,11 +100,13 @@ class BlenderExporterAPI(ModellingAPI):
         trail = {}
         options.errorHandler.setSection("Scene Headers")
         BlenderExporterAPI.verifyLoad(bpy.context.scene,"TrailingData",options.errorHandler,trail)
-        for prop in ["MeshPropertyCount", "boneMapCount", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
+        BlenderExporterAPI.calculateBoundingBox(bpy.context.scene["hUnkn1"],options)
+        for prop in ["MeshPropertyCount", "creationDate", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
             BlenderExporterAPI.verifyLoad(bpy.context.scene,prop,options.errorHandler,header)
         meshProps = OrderedDict()
         for ix in range(header["MeshPropertyCount"]):
-            BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshProperty%d"%ix,options.errorHandler,meshProps)
+            for prop in Mod3MeshProperty.fields:
+                BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshProperty%d:%s"%(ix,prop),options.errorHandler,meshProps)
         materials = OrderedDict()
         for ix in range(header["materialCount"]):
             BlenderExporterAPI.verifyLoad(bpy.context.scene,"MaterialName%d"%ix,options.errorHandler,materials)
@@ -111,7 +115,7 @@ class BlenderExporterAPI(ModellingAPI):
             BlenderExporterAPI.verifyLoad(bpy.context.scene,"GroupProperty%d"%ix,options.errorHandler,groupProperties)
         options.executeErrors()
         #bpy.context.scene
-        return header, list(meshProps.values()), list(groupProperties.values()), trail["TrailingData"], list(materials.values())
+        return header, meshProps, list(groupProperties.values()), trail["TrailingData"], list(materials.values())
         
     @staticmethod
     def getSkeletalStructure(options):
@@ -127,21 +131,35 @@ class BlenderExporterAPI(ModellingAPI):
                 [bone["LMatrix"] for bone in protoskeleton], \
                 [bone["AMatrix"] for bone in protoskeleton], \
                 skeletonMap
-        
+    
+    @staticmethod
+    def listMeshes(options):
+        return sorted([o for o in bpy.context.scene.objects if o.type=="MESH" and (options.exportHidden or not o.hide)], key=lambda x: x.data.name)
+    
     @staticmethod
     def getMeshparts(options, boneNames, materials):
         options.errorHandler.setSection("Meshes")
         options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
-        meshes = sorted([o for o in bpy.context.scene.objects if o.type=="MESH"], key=lambda x: x.data.name)
         meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) 
-                    for mesh in meshes if options.exportHidden or not mesh.hide]
+                    for mesh in BlenderExporterAPI.listMeshes(options)]
         options.validateMaterials(materials)
         options.executeErrors()
         return meshlist, materials
     
 # =============================================================================
 # Exporter Functions:
-# =============================================================================
+# =============================================================================    
+    @staticmethod
+    def calculateBoundingBox(writeDestination,options):
+        meshes = BlenderExporterAPI.listMeshes(options)
+        minBox = Vector(map(min,zip(*[mesh.bound_box[0] for mesh in meshes])))
+        maxBox = Vector(map(max,zip(*[mesh.bound_box[6] for mesh in meshes])))
+        writeDestination[2:5] = list((minBox+maxBox)/2)
+        writeDestination[5] = ((maxBox-minBox).length/2)
+        writeDestination[6:9] = list(minBox)
+        writeDestination[10:13] = list(maxBox)
+        return
+    
     @staticmethod
     def getRootEmpty():
         childless = []
@@ -203,16 +221,7 @@ class BlenderExporterAPI(ModellingAPI):
        
     @staticmethod
     def getTarget(bone, errorHandler):
-        constraints = [b for b in bone.constraints if b.type == "CHILD_OF"]
-        if not len(constraints):
-            return None
-        constraint = constraints[0]
-        if len(constraints)>1:
-            bone["child"]=constraint
-            for c in constraints[1:]:
-                errorHandler.propertyDuplicate("child",bone,c)
-            constraint = bone["child"]
-        return constraint.target.name if constraint.target else bone.name
+        return None if not hasattr(bone,"MHW_Symmetric_pair") else bone.MHW_Symmetric_pair.name
         
     
     @staticmethod

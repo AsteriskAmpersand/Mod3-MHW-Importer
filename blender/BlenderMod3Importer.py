@@ -11,6 +11,7 @@ import array
 import os
 from mathutils import Vector, Matrix
 from collections import OrderedDict
+from pathlib import Path
 try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..blender import BlenderSupressor
@@ -30,7 +31,7 @@ class BoneGraph():
         self.bones = {}
         self.boneParentage = {}
         for ix, bone in enumerate(armature):
-            bonePoint = BonePoint("Bone.%03d"%ix, bone)
+            bonePoint = BonePoint(ix, bone)
             self.bones[ix] = bonePoint 
             if bone["parentId"] in self.bones:
                 self.bones[bone["parentId"]].children.append(bonePoint)
@@ -45,11 +46,12 @@ class BoneGraph():
         
     def root(self):
         return self.roots
-    
+
 class BonePoint():
-    def __init__(self, name, bone):
+    def __init__(self, ix, bone):
         self.properties = bone["CustomProperties"]
-        self.name = name
+        self.index = ix
+        self.name = "Bone.%03d"%ix
         self.lmatrix = BlenderImporterAPI.deserializeMatrix("LMatCol",bone)
         self.pos = Vector((bone["x"],bone["y"],bone["z"]))
         self.children = []
@@ -77,17 +79,18 @@ class BlenderImporterAPI(ModellingAPI):
         miniscene = OrderedDict()
         BlenderImporterAPI.createRootNub(miniscene)
         for ix, bone in enumerate(armature):
-            if "Bone.%03d"%ix not in miniscene:
+            if ix not in miniscene:
                 BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
-        miniscene["Bone.%03d"%255].name = '%s Armature'%processPath(context.path)
-        miniscene["Bone.%03d"%255]["Type"] = "SkeletonRoot"
+        miniscene[255].name = '%s Armature'%processPath(context.path)
+        miniscene[255]["Type"] = "SkeletonRoot"
         BlenderImporterAPI.linkChildren(miniscene)
         context.armature = miniscene
-        return   
+        return 
     
     @staticmethod
     def createArmature(armature, context):#Skeleton
         filename = processPath(context.path)
+        miniscene = OrderedDict()
         BlenderImporterAPI.dbg.write("Loading Armature\n")
         bpy.ops.object.select_all(action='DESELECT')
         blenderArmature = bpy.data.armatures.new('%s Armature'%filename)
@@ -103,13 +106,14 @@ class BlenderImporterAPI(ModellingAPI):
         empty = BlenderImporterAPI.createParentBone(blenderArmature)
         boneGraph = BoneGraph(armature)
         for bone in boneGraph.root():
-            root = BlenderImporterAPI.createBone(blenderArmature, bone)
+            root = BlenderImporterAPI.createBone(blenderArmature, bone, miniscene)
             root.parent = empty
             #arm.pose.bones[ix].matrix
             
         bpy.ops.object.editmode_toggle()
         BlenderImporterAPI.dbg.write("Loaded Armature\n")
-        context.armature = arm_ob
+        context.armature = miniscene
+        context.skeleton = arm_ob
         return
     
     @staticmethod
@@ -128,7 +132,7 @@ class BlenderImporterAPI(ModellingAPI):
             BlenderImporterAPI.dbg.write("\tBasic Face Count %d\n"%len(meshpart["faces"]))
             #Weight Handling
             BlenderImporterAPI.dbg.write("\tLoading Weights\n")
-            BlenderImporterAPI.writeWeights(blenderObject, meshpart)
+            BlenderImporterAPI.writeWeights(blenderObject, meshpart, context)
             #Normals Handling
             BlenderImporterAPI.dbg.write("\tLoading Normals\n")
             BlenderImporterAPI.setNormals(meshpart["normals"],blenderMesh)
@@ -182,10 +186,11 @@ class BlenderImporterAPI(ModellingAPI):
 
     @staticmethod
     def linkArmature(context):
-        with BlenderSupressor.SupressBlenderOps():
-            for mesh in context.meshes:
-                modifier = mesh.modifiers.new(name = "Animation Armature", type='ARMATURE')
-                modifier.object = context.armature
+        if hasattr(context,"skeleton"):
+            with BlenderSupressor.SupressBlenderOps():
+                for mesh in context.meshes:
+                    modifier = mesh.modifiers.new(name = "Animation Armature", type='ARMATURE')
+                    modifier.object = context.skeleton
         
     @staticmethod
     def clearScene(context):
@@ -241,11 +246,11 @@ class BlenderImporterAPI(ModellingAPI):
         return nodeEnd
 
     @staticmethod
-    def meshImportMaterials(meshObject,textureFetch):
+    def meshImportMaterials(filename,meshObject,textureFetch):
         mo=meshObject
         BlenderImporterAPI.dbg.write("\t\tImporting Material to Mesh\n")
         qf = lambda y: lambda x: textureFetch(x,y)
-        nodeTree = materialSetup(mo)
+        nodeTree = materialSetup(filename,mo)
         if nodeTree is None:
             return
         preapplyTree = lambda x: lambda y: x(nodeTree,y)
@@ -274,7 +279,7 @@ class BlenderImporterAPI(ModellingAPI):
             return
         BlenderImporterAPI.dbg.write("\tIterating over Meshes\n")
         for meshObject in context.meshes:
-            BlenderImporterAPI.meshImportMaterials(meshObject,textureFetch)
+            BlenderImporterAPI.meshImportMaterials(Path(context.path).stem,meshObject,textureFetch)
             
                   
         
@@ -377,7 +382,7 @@ class BlenderImporterAPI(ModellingAPI):
     @staticmethod
     def createRootNub(miniscene):
         o = bpy.data.objects.new("Bone.%03d"%255, None )
-        miniscene["Bone.%03d"%255]=o
+        miniscene[255]=o
         bpy.context.scene.objects.link( o )
         o.show_wire = True
         o.show_x_ray = True
@@ -387,10 +392,10 @@ class BlenderImporterAPI(ModellingAPI):
     @staticmethod
     def createNub(ix, bone, armature, miniscene):
         o = bpy.data.objects.new("Bone.%03d"%ix, None )
-        miniscene["Bone.%03d"%ix]=o
+        miniscene[ix]=o
         bpy.context.scene.objects.link( o )
         #if bone["parentId"]!=255:
-        parentName = "Bone.%03d"%bone["parentId"]
+        parentName = bone["parentId"]
         if parentName not in miniscene:
             BlenderImporterAPI.createNub(bone["parentId"],armature[bone["parentId"]],miniscene)
         o.parent = miniscene[parentName]
@@ -417,15 +422,16 @@ class BlenderImporterAPI(ModellingAPI):
         return bone
         
     @staticmethod
-    def createBone(armature, obj, parent_bone = None):
+    def createBone(armature, obj, miniscene, parent_bone = None):
         bone = armature.edit_bones.new(obj.name)
+        miniscene[obj.index] = obj
         bone.head = Vector([0, 0, 0])
         bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])#Vector([0, 1, 0])
         if not parent_bone:
             parent_bone = BlenderImporterAPI.DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
         bone.matrix = parent_bone.matrix * obj.lmatrix
         for child in obj.children:
-            nbone = BlenderImporterAPI.createBone(armature, child, bone)
+            nbone = BlenderImporterAPI.createBone(armature, child, miniscene, bone)
             nbone.parent = bone
         BlenderImporterAPI.parseProperties(obj.properties,bone.__setitem__)
         return bone
@@ -436,10 +442,17 @@ class BlenderImporterAPI(ModellingAPI):
         return matrix
     
     @staticmethod
-    def writeWeights(blenderObject, mod3Mesh):
-        for groupIx,group in mod3Mesh["weightGroups"].items():
-            groupId = "%03d"%groupIx if isinstance(groupIx, int) else str(groupIx) 
-            groupName = "Bone.%s"%str(groupId)
+    def writeWeights(blenderObject, mod3Mesh, context):
+        armature = context.armature
+        for groupIx,group in mod3Mesh["weightGroups"].items():                       
+            groupIndex = groupIx if isinstance(groupIx, int) else groupIx[0] 
+            if groupIndex in armature:
+                targetName = armature[groupIndex].name
+                tindex = int(targetName.split(".")[1])
+                groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
+            else:
+                groupId = str(groupIx)
+            groupName = "Bone.%s"%groupId
             for vertex,weight in group:
                 if groupName not in blenderObject.vertex_groups:
                     blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
@@ -449,14 +462,9 @@ class BlenderImporterAPI(ModellingAPI):
     @staticmethod
     def linkChildren(miniscene):
         for ex in range(len(miniscene)-1):
-            e = miniscene["Bone.%03d"%ex]
+            e = miniscene[ex]
             if e["child"] != 255:
-                c = e.constraints.new('CHILD_OF')
-                for prop in ["location","rotation","scale"]:
-                    for axis in ["x","y","z"]:
-                        c.__setattr__("use_%s_%s"%(prop,axis), False)
-                c.target=miniscene["Bone.%03d"%e["child"]]
-                c.active=False
+                e.MHW_Symmetric_Pair = miniscene[e["child"]]
             del e["child"]
     
 # =============================================================================
@@ -512,3 +520,24 @@ class BlenderImporterAPI(ModellingAPI):
         #BlenderImporterAPI.dbg.write("UVs %s\n"%str([list(map(lambda x: vertexUVMap[x], face)) for face in FaceList]))
         return sum([list(map(lambda x: vertexUVMap[x], face)) for face in FaceList],[])
 
+# =============================================================================
+# Bounding Box Handling
+# =============================================================================
+    @staticmethod
+    def loadBoundingBoxes(boundingBoxes, context):
+        #elementWiseMult = lambda vec1, vec2: Vector(x * y for x, y in zip(vec1, vec2))
+        for box in boundingBoxes:
+            name = "%s_Bounding_Box"%Path(context.path).stem
+            lattice = bpy.data.lattices.new(name)
+            lattice_ob = bpy.data.objects.new(name, lattice)
+            for prop,value in box.metadata().items():
+                lattice_ob.data[prop] = value
+            #lattice_ob.matrix_world = box.matrix()
+            lattice_ob.scale = box.scale()
+            lattice_ob.location = lattice_ob.location + box.center()
+            constraint = lattice_ob.constraints.new("CHILD_OF")
+            constraint.target = context.armature[box.bone()] if box.bone() in context.armature else None
+            #lattice_ob.scale = elementWiseMult(box.vector(),lattice_ob.scale)
+            
+            bpy.context.scene.objects.link(lattice_ob)
+            bpy.context.scene.update()
