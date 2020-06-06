@@ -82,7 +82,7 @@ class BlenderImporterAPI(ModellingAPI):
             if ix not in miniscene:
                 BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
         miniscene[255].name = '%s Armature'%processPath(context.path)
-        miniscene[255]["Type"] = "SkeletonRoot"
+        miniscene[255]["Type"] = "MOD3_SkeletonRoot"
         BlenderImporterAPI.linkChildren(miniscene)
         context.armature = miniscene
         return 
@@ -531,13 +531,13 @@ class BlenderImporterAPI(ModellingAPI):
             lattice = bpy.data.lattices.new(name)
             lattice_ob = bpy.data.objects.new(name, lattice)
             for prop,value in box.metadata().items():
-                lattice_ob.data[prop] = value
-            #lattice_ob.matrix_world = box.matrix()
+                lattice[prop] = value
+            #lattice_ob.matrix_local = box.matrix()
             lattice_ob.scale = box.scale()
             lattice_ob.location = lattice_ob.location + box.center()
             constraint = lattice_ob.constraints.new("CHILD_OF")
             constraint.target = context.armature[box.bone()] if box.bone() in context.armature else None
             #lattice_ob.scale = elementWiseMult(box.vector(),lattice_ob.scale)
-            
+            lattice["Type"] = "MOD3_BoundingBox"
             bpy.context.scene.objects.link(lattice_ob)
             bpy.context.scene.update()

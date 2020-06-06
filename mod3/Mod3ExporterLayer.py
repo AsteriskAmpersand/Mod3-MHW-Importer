@@ -31,6 +31,7 @@ class ExporterSettings():
         self.setHighestLoD = options["lod"]
         self.splitNormals = options["splitnormals"]
         self.exportHidden = options["hidden"]
+        self.boundingBoxes = options["boundingbox"]
         
     def validateMaterials(self, materials):
         if self.materialsAdded and not materials:
@@ -75,9 +76,9 @@ class ModelToMod3():
     
     def execute(self, context):
         try:
-            fileHeader, meshData, groupStuff, trailingData, headerMaterials = self.api.getSceneHeaders(self.options)
+            fileHeader, groupStuff, trailingData, headerMaterials = self.api.getSceneHeaders(self.options)            
             skeleton,lmatrices,amatrices,bonenames = self.api.getSkeletalStructure(self.options)
-            meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
+            meshData, meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
             self.analyzeMeshparts(meshparts)
             self.options.errorHandler.displayErrors()
         except UnexportableError as e:

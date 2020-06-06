@@ -18,6 +18,7 @@ try:
     from ..mod3.Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
     from ..mod3.Mod3Mesh import Mod3MeshProperty
+    from ..mod3.Mod3Components import Mod3GroupProperty
     from ..blender.BlenderSupressor import SupressBlenderOps
     from ..blender.BlenderNormals import denormalize
     from ..common.crc import CrcJamcrc
@@ -29,6 +30,7 @@ except:
     from Mod3VertexBuffer import Mod3Vertex
     from ModellingApi import ModellingAPI, debugger
     from Mod3Mesh import Mod3MeshProperty
+    from Mod3Components import Mod3GroupProperty
     from BlenderSupressor import SupressBlenderOps
     from crc import CrcJamcrc
     
@@ -101,21 +103,18 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.setSection("Scene Headers")
         BlenderExporterAPI.verifyLoad(bpy.context.scene,"TrailingData",options.errorHandler,trail)
         BlenderExporterAPI.calculateBoundingBox(bpy.context.scene["hUnkn1"],options)
-        for prop in ["MeshPropertyCount", "creationDate", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
+        for prop in ["creationDate", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
             BlenderExporterAPI.verifyLoad(bpy.context.scene,prop,options.errorHandler,header)
-        meshProps = OrderedDict()
-        for ix in range(header["MeshPropertyCount"]):
-            for prop in Mod3MeshProperty.fields:
-                BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshProperty%d:%s"%(ix,prop),options.errorHandler,meshProps)
         materials = OrderedDict()
         for ix in range(header["materialCount"]):
             BlenderExporterAPI.verifyLoad(bpy.context.scene,"MaterialName%d"%ix,options.errorHandler,materials)
         groupProperties = OrderedDict()
-        for ix in range(8*header["groupCount"]):
-            BlenderExporterAPI.verifyLoad(bpy.context.scene,"GroupProperty%d"%ix,options.errorHandler,groupProperties)
+        for ix in range(header["groupCount"]):
+            for prop in Mod3GroupProperty.fields:
+                BlenderExporterAPI.verifyLoad(bpy.context.scene,"GroupProperty%d:%s"%(ix,prop),options.errorHandler,groupProperties)
         options.executeErrors()
         #bpy.context.scene
-        return header, meshProps, list(groupProperties.values()), trail["TrailingData"], list(materials.values())
+        return header,  groupProperties, trail["TrailingData"], list(materials.values())
         
     @staticmethod
     def getSkeletalStructure(options):
@@ -142,9 +141,10 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
         meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) 
                     for mesh in BlenderExporterAPI.listMeshes(options)]
+        meshdata = BlenderExporterAPI.getMeshData(options,boneNames)
         options.validateMaterials(materials)
         options.executeErrors()
-        return meshlist, materials
+        return meshdata, meshlist, materials
     
 # =============================================================================
 # Exporter Functions:
@@ -159,6 +159,68 @@ class BlenderExporterAPI(ModellingAPI):
         writeDestination[6:9] = list(minBox)
         writeDestination[10:13] = list(maxBox)
         return
+    
+    @staticmethod
+    def getMeshData(options,boneNames):
+        if options.boundingBoxes == "Original":  
+            header = {}
+            BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshPropertyCount",options.errorHandler,header)
+            meshProps = []
+            for ix in range(header["MeshPropertyCount"]):
+                meshProp = {}
+                for prop in Mod3MeshProperty.fields:
+                    BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshProperty%05d:%s"%(ix,prop),options.errorHandler,meshProp)
+                cleanProp = {prop.split(":")[1]:meshProp[prop] for prop in meshProp}
+                meshProps.append(cleanProp)
+        elif options.boundingBoxes == "Explicit":
+            meshProps = []
+            for ix,boundingBox in enumerate((obj for obj in bpy.context.scene.objects 
+                                if obj.type == "LATTICE" and 
+                                "Type" in obj.data and 
+                                obj.data["Type"] == "MOD3_BoundingBox")):
+                meshProps.append(BlenderExporterAPI.calculateLatticeBox(boundingBox,boneNames,options))
+                
+        elif options.boundingBoxes == "Calculate":
+            for mesh in BlenderExporterAPI.listMeshes(options):
+                meshProps.append(BlenderExporterAPI.meshToBox(mesh))        
+        return meshProps
+    
+    @staticmethod
+    def meshToBox(mesh):
+        raise NotImplementedError
+    
+    @staticmethod
+    def calculateLatticeBox(boundingBox,boneNames,options):
+        propname = "MeshProperty:"
+        properties = {}
+        constraints = [c for c in boundingBox.constraints if c.type == "CHILD_OF" and c.target]
+        if not len(constraints):
+            index = options.errorHandler.propertyMissing("MeshProperty:boneIndex")
+        else:
+            if len(constraints)>1:
+                options.errorHandler.propertyDuplicate("MeshProperty:boneIndex")
+            c = constraints[0]
+            if c.target.name not in boneNames:
+                index = 255
+            else:
+                index = boneNames[c.target.name]
+        
+        vecmatrad = {}
+        BlenderExporterAPI.verifyLoad(boundingBox.data, "vector", options.errorHandler, vecmatrad, propname+"vector")
+        BlenderExporterAPI.verifyLoad(boundingBox.data, "matrix", options.errorHandler, vecmatrad, propname+"matrix")
+        BlenderExporterAPI.verifyLoad(boundingBox.data, "radius", options.errorHandler, vecmatrad, propname+"radius")
+        rad = vecmatrad["radius"]
+        vec = vecmatrad["vector"]
+        mat = vecmatrad["matrix"]
+        properties["boneIndex"] = index
+        properties["spacer"] = [0xCD]*12
+        properties["center"] = boundingBox.location
+        properties["radius"] = rad
+        properties["boxMin"] = list(boundingBox.location - boundingBox.scale/2)+[0]
+        properties["boxMax"] = list(boundingBox.location + boundingBox.scale/2)+[0]
+        properties["matrix"] = mat
+        properties["vector"] = vec
+        return properties
     
     @staticmethod
     def getRootEmpty():
@@ -177,7 +239,7 @@ class BlenderExporterAPI(ModellingAPI):
         if rootCandidate.type !="EMPTY" or rootCandidate.parent:
             return 0
         if "Type" in rootCandidate:
-            if rootCandidate["Type"] == "SkeletonRoot":
+            if rootCandidate["Type"] == "MOD3_SkeletonRoot":
                 return 3
             else:
                 return 0        
@@ -187,18 +249,18 @@ class BlenderExporterAPI(ModellingAPI):
             return any(("boneFunction" in child for child in rootCandidate.children))*2
         else:
             return 1
-        
-    
+
     @staticmethod
-    def verifyLoad(source, propertyName, errorHandler, storage):
-        if propertyName in source:
-            prop = source[propertyName]
+    def verifyLoad(source, accessPropertyName, errorHandler, storage, errorPropertyName = None):
+        if errorPropertyName is None: errorPropertyName = accessPropertyName
+        if accessPropertyName in source:
+            prop = source[accessPropertyName]
         else:
-            prop = errorHandler.propertyMissing(propertyName)
-        if propertyName in storage:
-            errorHandler.propertyDuplicate(propertyName, storage, prop)
+            prop = errorHandler.propertyMissing(errorPropertyName)
+        if accessPropertyName in storage:
+            errorHandler.propertyDuplicate(accessPropertyName, storage, prop)
         else:
-            storage[propertyName]=prop
+            storage[accessPropertyName]=prop
         return
     
     @staticmethod

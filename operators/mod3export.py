@@ -44,6 +44,15 @@ class ExportMOD3(Operator, ExportHelper):
         description = "Also exports hidden meshes.",
         default = True            
         )
+    export_bounds = EnumProperty(
+        name = "Export Mesh Bounding Box",
+        description = "Overrides the file bounding boxes.",
+        items= [("Original","Original","No overriding, exports what was imported as Bounding Box.",0),
+                ("Calculate","Calculate","Recalculates a box for each mesh",1),
+                ("Explicit","Explicit","Exports Lattices as Bounding Boxes.",2)                
+                ],
+        default = "Original",
+        )
     errorItems = [("Ignore","Ignore","Will not log warnings. Catastrophical errors will still break the process.",0),
                   ("Warning","Warning","Will be logged as a warning. This are displayed in the console. (Window > Toggle_System_Console)",1),
                   ("Error","Error","Will stop the exporting process. An error will be displayed and the log will show details. (Window > Toggle_System_Console)",2),
@@ -97,7 +106,8 @@ class ExportMOD3(Operator, ExportHelper):
                 "levels":{prop:self.__getattribute__(prop) for prop in self.levelProperties},
                 "splitnormals":self.split_normals,
                 "coerce":self.coerce_fourth,
-                "hidden":self.export_hidden
+                "hidden":self.export_hidden,
+                "boundingbox":self.export_bounds,
                 }        
         return options
     

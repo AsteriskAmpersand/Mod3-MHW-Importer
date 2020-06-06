@@ -68,18 +68,40 @@ class Mod3Materials(CS.Mod3Container):
     def sceneProperties(self):
         return {"MaterialName%d"%ix:matname.materialName for ix, matname in enumerate(self.mod3Array)}
 
-class Mod3GroupProperties(CS.PyCStruct):
+class Mod3GroupProperty(CS.PyCStruct):
+    fields = OrderedDict([
+                ("groupID","int"),
+                ("CD","int[3]"),
+                ("unkn","hfloat[6]"),
+                ("unknf","float")                
+                ])
+
+class Mod3GroupProperties(CS.Mod3Container):
     def __init__(self, propertyCount):
-        self.fields = OrderedDict([("groupProperties","int32[%d]"%(propertyCount*8))])
-        super().__init__()
-    requiredProperties = {"groupProperties"}
+        super().__init__(Mod3GroupProperty,propertyCount)
+    #requiredProperties = {"groupProperties"}
+            
+    def construct(self, data):
+        data = self.decompose(data)
+        #self.count = len(data)
+        self.mod3Array = [Mod3GroupProperty() for _ in range(len(data))]
+        [x.construct({prop:data[index][prop] for prop in data[index]}) for x,index in zip(self.mod3Array,sorted(data.keys()))]
+        return self
     
-    def construct(self, groupStuffList):
-        self.groupProperties = groupStuffList
-        
+    def decompose(self,propertyMass):
+        indices = {}
+        for prop in propertyMass:
+            count,propName = prop.split(":")
+            count = int(count.replace("GroupProperty",""))
+            if count not in indices:
+                indices[count]={}
+            indices[count][propName] = propertyMass[prop]
+        return indices
+    
     def sceneProperties(self):
-        return {"GroupProperty%d"%(i):data
-                for i,data in enumerate(self.groupProperties)}      
+        return {"GroupProperty%d:%s"%(i,field):getattr(data,field)
+                for i,data in enumerate(self) for field in Mod3GroupProperty.fields}  
+        
 #Blind Data Remnants
 class GenericRemnants():
     def __init__(self):

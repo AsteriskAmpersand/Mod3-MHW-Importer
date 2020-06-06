@@ -179,12 +179,18 @@ if __name__ in "__main__":
         modelfile = FL.FileLike(modelf.open("rb").read())
         model = Mod3()
         model.marshall(modelfile)
-        if model.Header.groupCount > 2:
-            print(modelf)
-            if model.Header.groupCount > maxing:
-                maxing = model.Header.groupCount
-                path = modelf
-    print("Max found with %d at %s"%(maxing,path))
+        
+        for group in model.GroupProperties:
+            if group.unkn[0] != 0:
+                print(group)
+                print(modelf)
+        #if model.Header.groupCount > 2:
+        #    #print(modelf)
+        #    if model.Header.groupCount > maxing:
+        #        maxing = model.Header.groupCount
+        #        path = modelf
+        #        print ("%s:%d"%(modelf,maxing))
+    #print("Max found with %d at %s"%(maxing,path))
         
     def getMonsterMakeDate():
         import time

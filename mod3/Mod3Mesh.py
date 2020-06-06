@@ -356,7 +356,7 @@ class BoundingBox():
 class Mod3MeshProperty(CS.PyCStruct):
     fields = OrderedDict([
             ("boneIndex","int"),
-            ("spacer","int[3]"),
+            ("spacer","ubyte[12]"),
             ("center","float[3]"),
             ("radius","float"),
             ("boxMin","float[4]"),
@@ -364,7 +364,8 @@ class Mod3MeshProperty(CS.PyCStruct):
             ("matrix","float[16]"),
             ("vector","float[4]"),
             ])
-    requiredProperties = { f for f in fields }
+    requiredProperties = { f for f in fields if f != "spacer"}
+    defaultProperties = { "spacer":[0xCD]*12}
     def sceneProperties(self):
         return {field:getattr(self,field) for field in self.fields}
     def boundingBox(self):
@@ -382,18 +383,11 @@ class Mod3MeshProperties(CS.PyCStruct):
         data = self.decompose(data)
         self.count = len(data)
         self.properties = [Mod3MeshProperty() for _ in range(self.count)]
-        [x.construct({prop:data[index][prop] for prop in data[index]}) for x,index in zip(self.properties,sorted(data.keys()))]
+        [x.construct(d) for x,d in zip(self.properties,data)]
         return self
     
     def decompose(self,propertyMass):
-        indices = {}
-        for prop in propertyMass:
-            count,propName = prop.split(":")
-            count = int(count.replace("MeshProperty",""))
-            if count not in indices:
-                indices[count]={}
-            indices[count][propName] = propertyMass[prop]
-        return indices
+        return propertyMass
     
     def serialize(self):
         return super().serialize() + b''.join([prop.serialize() for prop in self.properties])
@@ -402,7 +396,7 @@ class Mod3MeshProperties(CS.PyCStruct):
         return super().__len__() + sum([len(prop) for prop in self.properties])
     
     def sceneProperties(self):
-        properties = {"MeshProperty%d:%s"%(ix,prop):val for ix, propertyFamily in enumerate(self.properties) for prop,val in propertyFamily.sceneProperties().items()}
+        properties = {"MeshProperty%05d:%s"%(ix,prop):val for ix, propertyFamily in enumerate(self.properties) for prop,val in propertyFamily.sceneProperties().items()}
         properties["MeshPropertyCount"]=self.count
         return properties
     

@@ -105,6 +105,9 @@ class PyCStruct():
         for attr in self.fields:
             if self.__getattribute__(attr) is None:
                 raise AssertionError("Attribute %s is not initialized."%attr)
+                
+    def __repr__(self):
+        return str({field:(getattr(self,field) if hasattr(self,field) else None) for field in self.fields})
 
 class Cstruct():
     deserializer = lambda y: {'deserializer':lambda x: struct.unpack(y,x)[0], 'serializer': lambda x: struct.pack(y,x)}
@@ -213,3 +216,6 @@ class Mod3Container():
     
     def verify(self):
         [x.verify() for x in self.mod3Array]
+        
+    def __repr__(self):
+        return str(list(map(lambda x: repr(x), self.mod3Array)))
