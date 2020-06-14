@@ -47,11 +47,10 @@ class ExportMOD3(Operator, ExportHelper):
     export_bounds = EnumProperty(
         name = "Export Mesh Bounding Box",
         description = "Overrides the file bounding boxes.",
-        items= [("Original","Original","No overriding, exports what was imported as Bounding Box.",0),
-                ("Calculate","Calculate","Recalculates a box for each mesh",1),
-                ("Explicit","Explicit","Exports Lattices as Bounding Boxes.",2)                
+        items= [("Calculate","Calculate","Recalculates a box for each mesh",0),
+                ("Explicit","Explicit","Exports Lattices as Bounding Boxes.",1)                
                 ],
-        default = "Original",
+        default = "Calculate",
         )
     errorItems = [("Ignore","Ignore","Will not log warnings. Catastrophical errors will still break the process.",0),
                   ("Warning","Warning","Will be logged as a warning. This are displayed in the console. (Window > Toggle_System_Console)",1),

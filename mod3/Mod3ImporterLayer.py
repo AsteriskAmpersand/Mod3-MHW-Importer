@@ -57,15 +57,13 @@ class Mod3ToModel():
                 execute.append(lambda c: self.importTextures(c, options["Import Textures"]))
             if "Import Materials" in options:
                 execute.append(lambda c: self.importMaterials(c, options["Import Materials"]))
-        if "Mesh Unknown Properties" in options:
-            execute.append(lambda c: self.setMeshProperties(c))
+        #if "Mesh Unknown Properties" in options:
+        #    execute.append(lambda c: self.setMeshProperties(c))
         if "Skeleton" in options and options["Skeleton"] == "Armature":
             execute.append(lambda c: self.linkArmature(c))
         if "Max Clip" in options:
             execute.append(lambda c: self.maximizeClipping(c))
-        if "Override Defaults" in options:
-            execute.append(lambda c: self.overrideMeshDefaults(c))
-        if "Load Groups and Functions" in options:
+        if "Load Groups and Functions" in options and "Mesh Parts" in options:
             execute.append(lambda c: self.loadGroupsFunctions(c))
         self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
         return execute

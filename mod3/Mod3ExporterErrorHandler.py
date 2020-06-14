@@ -102,25 +102,25 @@ class ErrorHandler():
                         'GroupProperty:groupID':0, 
                         'GroupProperty:unkn':[0]*6, 
                         'GroupProperty:CD':[0xCD,0xCD,0xCD],
-                        'GroupProperty:unknf':[0,0],
-                        
-                        "MeshProperty:boneIndex":255,
-                        "MeshProperty:spacer":[0xCD]*12,
-                        "MeshProperty:center":[0]*3,
-                        "MeshProperty:radius":0,
-                        "MeshProperty:boxMin":[0,0,0,0],
-                        "MeshProperty:boxMax":[0,0,0,0],
-                        "MeshProperty:matrix":[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
-                        "MeshProperty:vector":[0,0,0,0],
-            
-                        "MeshPropertyCount":0, "creationDate":0,
+                        'GroupProperty:unknf':[0]*4,
+                              
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
-                        "unkn":0,"unkn1":0,"unkn2":0,"unkn3":0,"unkn9":[0]*39,
-                        "hUnkn1":[0]*38, "hUnkn2":[0]*64,
-                        "TrailingData":[], "material":None,
+                        
+                        "ByteSegment:editorClippingDistance":15000,
+                        "ByteSegment:unknSegmentStart":[1,5],
+                        "ByteSegment:unknData":[0,1,1,1, 1,1,1,1],
+                        "ByteSegment:unknData2":[0,1,1,1, 1,1,1,1],
+                        "ByteSegment:unknSegmentContinue":1,
+                        "ByteSegment:lodDistances":[360,60,20,10,10],
+                        "FloatSegment:unkn1":[1]*64,
+                        
+                        "TrailingData":[0x04,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00],                        
+                        "shadowCast":19,"weightDynamics":33,
+                        "unkn3":83,"unknownIndex":1,"intUnknown":0x30000000,
+                        "material":None,"mapData":[-1,-1],
                         "visibleCondition":0,"lod":0xFFFF,"blockLabel":None,
-                        "boneremapid":0,    
                         }
+    
     def attemptLoadDefaults(self, defaults, source):
         for prop in defaults:
             if "DefaultMesh-"+prop in source:

@@ -28,7 +28,6 @@ hex_read = lambda f,x: intBytes(f.read(x))
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
 
 def fixpath(path):
-
     if os.name == 'posix':
         return path.replace("\\","/")
     return path

@@ -176,8 +176,15 @@ class Cstruct():
     def marshall(self, data):
         return {varName:typeOperator['deserializer'](data.read(typeOperator['size'])) for varName, typeOperator in self.struct.items()}
     
-    def serialize(self, data):
-        return b''.join([typeOperator['serializer'](data[varName]) for varName, typeOperator in self.struct.items()])
+    def testSerialize(self,varName,data,operator):
+        try:
+            return operator(data[varName])
+        except:
+            print("Variable %s was passed %s"%(varName,data[varName]))
+            raise
+            
+    def serialize(self, data):        
+        return b''.join((self.testSerialize(varName,data,typeOperator['serializer']) for varName, typeOperator in self.struct.items()))
     
 class Mod3Container():
     def __init__(self, Mod3Class, containeeCount = 0):

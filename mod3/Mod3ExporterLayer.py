@@ -31,7 +31,7 @@ class ExporterSettings():
         self.setHighestLoD = options["lod"]
         self.splitNormals = options["splitnormals"]
         self.exportHidden = options["hidden"]
-        self.boundingBoxes = options["boundingbox"]
+        self.calculateBoundingBox = options["boundingbox"]
         
     def validateMaterials(self, materials):
         if self.materialsAdded and not materials:
@@ -78,13 +78,13 @@ class ModelToMod3():
         try:
             fileHeader, groupStuff, trailingData, headerMaterials = self.api.getSceneHeaders(self.options)            
             skeleton,lmatrices,amatrices,bonenames = self.api.getSkeletalStructure(self.options)
-            meshData, meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
+            meshparts, materials = self.api.getMeshparts(self.options, bonenames, headerMaterials)
             self.analyzeMeshparts(meshparts)
             self.options.errorHandler.displayErrors()
         except UnexportableError as e:
             self.api.showMessageBox("Export Process failed due to an Error. Check the cause in Window > Toggle_System_Console")
             return
-        self.model.construct(fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, meshData, trailingData)
+        self.model.construct(fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, trailingData)
         file = open(context,"wb")
         file.write(self.model.serialize())
         file.close()

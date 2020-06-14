@@ -119,6 +119,7 @@ class BlenderImporterAPI(ModellingAPI):
     @staticmethod
     def createMeshParts(meshPartList, context):
         meshObjects = []
+        boundingBoxes = []
         filename = processPath(context.path)
         bpy.ops.object.select_all(action='DESELECT')
         BlenderImporterAPI.dbg.write("Creating Meshparts\n")
@@ -155,7 +156,9 @@ class BlenderImporterAPI(ModellingAPI):
             BlenderImporterAPI.dbg.write("\tMeshpart Loaded\n")
             blenderMesh.update()
             meshObjects.append(blenderObject)
+            boundingBoxes.append(meshpart["boundingBoxes"])
         context.meshes = meshObjects
+        context.boundingBoxes = boundingBoxes
         BlenderImporterAPI.dbg.write("Meshparts Created\n")
 
     @staticmethod
@@ -290,11 +293,19 @@ class BlenderImporterAPI(ModellingAPI):
         
     @staticmethod
     def maximizeClipping(context):
+        meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+        if meshes:
+            minBox = Vector(map(min,zip(*[mesh.bound_box[0] for mesh in meshes])))
+            maxBox = Vector(map(max,zip(*[mesh.bound_box[6] for mesh in meshes])))
+        else:
+            minBox = Vector([0,0,0])
+            maxBox = Vector([0,0,0])
+        span = max(max(maxBox-minBox)*2,10**3)
         for a in bpy.context.screen.areas:
             if a.type == 'VIEW_3D':
                 for s in a.spaces:
                     if s.type == 'VIEW_3D':
-                        s.clip_end = 10**3
+                        s.clip_end = span
                         
 # =============================================================================
 # Helper Methods
@@ -524,20 +535,49 @@ class BlenderImporterAPI(ModellingAPI):
 # Bounding Box Handling
 # =============================================================================
     @staticmethod
+    def loadAABB(box,name,armature):
+        name = "%s_AABB_Bounding_Box"%name
+        lattice = bpy.data.lattices.new(name)
+        lattice_ob = bpy.data.objects.new(name, lattice)
+        lattice_ob.scale = box.scale()
+        lattice_ob.location = lattice_ob.location + box.center()
+        constraint = lattice_ob.constraints.new("CHILD_OF")
+        constraint.target = armature[box.bone()] if box.bone() in armature else None
+        lattice["Type"] = "MOD3_BoundingBox_AABB"
+        bpy.context.scene.objects.link(lattice_ob)
+        bpy.context.scene.update()
+        return lattice_ob
+    
+    @staticmethod
+    def loadMVBB(box,name,armature):
+        name = "%s_MVBB_Bounding_Box"%name
+        lattice = bpy.data.lattices.new(name)
+        lattice_ob = bpy.data.objects.new(name, lattice)
+        #for prop,value in box.metadata().items():
+        #    lattice[prop] = value
+        lattice_ob.matrix_world = box.matrix()
+        lattice_ob.scale = box.vector()*2
+        
+        constraint = lattice_ob.constraints.new("CHILD_OF")
+        if box.bone() not in armature:
+            lattice_ob["bone_index"] = box.bone()
+        constraint.target = armature[box.bone()] if box.bone() in armature else None
+        lattice["Type"] = "MOD3_BoundingBox_MVBB"
+        bpy.context.scene.objects.link(lattice_ob)
+        bpy.context.scene.update()
+        return lattice_ob
+
+    @staticmethod
     def loadBoundingBoxes(boundingBoxes, context):
         #elementWiseMult = lambda vec1, vec2: Vector(x * y for x, y in zip(vec1, vec2))
-        for box in boundingBoxes:
-            name = "%s_Bounding_Box"%Path(context.path).stem
-            lattice = bpy.data.lattices.new(name)
-            lattice_ob = bpy.data.objects.new(name, lattice)
-            for prop,value in box.metadata().items():
-                lattice[prop] = value
-            #lattice_ob.matrix_local = box.matrix()
-            lattice_ob.scale = box.scale()
-            lattice_ob.location = lattice_ob.location + box.center()
-            constraint = lattice_ob.constraints.new("CHILD_OF")
-            constraint.target = context.armature[box.bone()] if box.bone() in context.armature else None
-            #lattice_ob.scale = elementWiseMult(box.vector(),lattice_ob.scale)
-            lattice["Type"] = "MOD3_BoundingBox"
-            bpy.context.scene.objects.link(lattice_ob)
-            bpy.context.scene.update()
+        for bbMesh, boxes in zip(context.meshes, context.boundingBoxes):
+            for box in boxes:
+                name = Path(context.path).stem
+                armature = context.armature
+                aabb = BlenderImporterAPI.loadAABB(box,name,armature)
+                mvbb =BlenderImporterAPI.loadMVBB(box,name,armature)
+                aabb.parent = bbMesh
+                mvbb.parent = bbMesh
+                #aabb.MHW_Symmetric_Pair = bbMesh
+                #mvbb.MHW_Symmetric_Pair = bbMesh
+            

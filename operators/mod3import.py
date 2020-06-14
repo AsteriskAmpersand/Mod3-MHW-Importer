@@ -51,10 +51,6 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import Meshparts.",
         description = "Imports mesh parts as meshes.",
         default = True)
-    import_unknown_mesh_props = BoolProperty(
-        name = "Import Unknown Mesh Properties.",
-        description = "Imports the Unknown section of the mesh collection as scene property.",
-        default = True)
     import_textures = BoolProperty(
         name = "Import Textures.",
         description = "Imports texture as specified by mrl3.",
@@ -63,6 +59,11 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import Materials.",
         description = "Imports maps as materials as specified by mrl3.",
         default = False)
+    load_group_functions = BoolProperty(
+        name = "Load Bounding Boxes.",
+        description = "Loads the mod3 as bounding boxes.",
+        default = False,
+        )
     texture_path = StringProperty(
         name = "Texture Source",
         description = "Root directory for the MRL3 (Native PC if importing from a chunk).",
@@ -83,15 +84,6 @@ class ImportMOD3(Operator, ImportHelper):
                   ("Slash","Split-Slash Notation","As split weight but also conserves weight order",2),
                   ],
         default = "Group")
-    override_defaults = BoolProperty(
-        name = "Override Default Mesh Properties.",
-        description = "Overrides program defaults with default properties from the first mesh in the file.",
-        default = False)
-    load_group_functions = BoolProperty(
-        name = "Load Unknown Group Functions and Mesh Unknown Blocks.",
-        description = "Loads the unmapped sections of the mod3 as bounding boxes.",
-        default = False,
-        )
 
     def execute(self,context):
         try:
@@ -124,16 +116,12 @@ class ImportMOD3(Operator, ImportHelper):
             options["Skeleton"]=self.import_skeleton
         if self.import_meshparts:
             options["Mesh Parts"]=True
-        if self.import_unknown_mesh_props:
-            options["Mesh Unknown Properties"]=True
         if self.high_lod:
             options["Only Highest LOD"]=True
         if self.import_textures:
             options["Import Textures"]=self.texture_path
         if self.import_materials:
             options["Import Materials"]=self.texture_path
-        if self.override_defaults:
-            options["Override Defaults"]=self.texture_path
         if self.load_group_functions:
             options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format

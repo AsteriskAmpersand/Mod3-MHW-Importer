@@ -24,7 +24,9 @@ class debugger():
             self.dbg = open(self.dbgFile, "a", buffering = 1)
         
 class ModellingAPI():   
-    MeshDefaults = ["boneremapid","material","unkn","unkn2","unkn3","unkn9","visibleCondition"]
+    MeshDefaults = ["material","unkn","unkn2","unkn3",
+                    "byteUnknown","NULL_FF","NULL_0","intUnknown","NULL_1",
+                    "visibleCondition"]
     
     def setScene(self, scene_properties, c):
         raise NotImplemented

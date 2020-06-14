@@ -13,6 +13,29 @@ except:
     sys.path.insert(0, r'..\common')
     import Cstruct as CS
 
+class Mod3HeaderBoundaries(CS.PyCStruct):
+    fields = OrderedDict([
+            ("center","float[3]"),
+            ("radius","float"),
+            ("minBox","float[4]"),
+            ("maxBox","float[4]")            
+            ])
+
+class Mod3HeaderFloatSegment(CS.PyCStruct):
+    fields = OrderedDict([
+            ("editorClippingDistance","float"),
+            ("unknSegmentStart","short[2]"),#01 00, 05 00
+            ("unknData","float[8]"),# [0,1,1,1, 1,1,1,1]
+            ("unknData2","float[8]"),# [0,1,1,1, 1,1,1,1]
+            ("unknSegmentContinue","int"),# 1
+            ("lodDistances","float[5]")#360 60 20 10 10
+            ])
+    
+class Mod3HeaderByteSegment(CS.PyCStruct):
+    fields = OrderedDict([
+            ("unkn1","byte[64]")         
+            ])
+
 class MOD3Header(CS.PyCStruct):
     fields = OrderedDict([
             ("id","long"),
@@ -34,17 +57,32 @@ class MOD3Header(CS.PyCStruct):
             ("meshOffset","uint64"),
             ("vertexOffset","uint64"),
             ("facesOffset","uint64"),
-            ("unknOffset","uint64"),
-            ("hUnkn1","float[38]"),
-            ("hUnkn2","byte[64]")
+            ("trailOffset","uint64"),
+            ("unkOffset2","uint64"),
             ])
-    scenePropertyList = ["vertexIds", "groupCount", "creationDate", "materialCount",
-                             "hUnkn1","hUnkn2"]
-    defaultProperties = {"id":0x444F4D,"version":237,"version2":0,"secondBufferSize":0}
+    def __init__(self):
+        super().__init__()
+        self.Boundaries = Mod3HeaderBoundaries()
+        self.FloatSegment = Mod3HeaderFloatSegment()
+        self.ByteSegment = Mod3HeaderByteSegment()
+    def marshall(self,data):
+        super().marshall(data)
+        self.Boundaries.marshall(data)
+        self.FloatSegment.marshall(data)
+        self.ByteSegment.marshall(data)
+    def construct(self,data):
+        super().construct(data)
+        self.Boundaries.construct(data["boundingData"])
+        self.FloatSegment.construct(data["floatData"])
+        self.ByteSegment.construct(data["byteData"])
+    scenePropertyList = ["vertexIds", "groupCount", "materialCount"]
+    defaultProperties = {"id":0x444F4D,"version":237,"version2":0,"secondBufferSize":0,"unkOffset2":0}
     requiredProperties = set(scenePropertyList)
     def sceneProperties(self):
-        return {prop:self.__getattribute__(prop)
-                for prop in self.scenePropertyList}        
+        return {**{prop:self.__getattribute__(prop)
+                for prop in self.scenePropertyList},
+                **{"ByteSegment:%s"%prop:getattr(self.ByteSegment,prop) for prop in self.ByteSegment.fields},
+                **{"FloatSegment:%s"%prop:getattr(self.FloatSegment,prop) for prop in self.FloatSegment.fields}}    
         
 class Mod3Material(CS.PyCStruct):
     buffersize = 128
@@ -72,8 +110,7 @@ class Mod3GroupProperty(CS.PyCStruct):
     fields = OrderedDict([
                 ("groupID","int"),
                 ("CD","int[3]"),
-                ("unkn","hfloat[6]"),
-                ("unknf","float")                
+                ("unknf","float[4]")                
                 ])
 
 class Mod3GroupProperties(CS.Mod3Container):

@@ -9,6 +9,7 @@ Created on Sun Mar 31 03:16:11 2019
 import bpy
 import math
 import os
+import time
 import sys
 from mathutils import Matrix, Vector
 from collections import OrderedDict
@@ -17,21 +18,24 @@ try:
     from ..mod3.ModellingApi import ModellingAPI, debugger
     from ..mod3.Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from ..mod3.Mod3VertexBuffers import Mod3Vertex
-    from ..mod3.Mod3Mesh import Mod3MeshProperty
-    from ..mod3.Mod3Components import Mod3GroupProperty
+    from ..mod3.Mod3Mesh import Mod3BoundingBox
+    from ..mod3.Mod3Components import Mod3GroupProperty,Mod3HeaderFloatSegment,Mod3HeaderByteSegment
     from ..blender.BlenderSupressor import SupressBlenderOps
     from ..blender.BlenderNormals import denormalize
+    from ..boundingbox.boundingBoxCalculations import estimateBoundingBox
     from ..common.crc import CrcJamcrc
 except:
     sys.path.insert(0, r'..\mod3')
     sys.path.insert(0, r'..\common')
     sys.path.insert(0, r'..\blender')
+    sys.path.insert(0, r'..\boundingbox')
     from Mod3DelayedResolutionWeights import BufferedWeight, BufferedWeights
     from Mod3VertexBuffer import Mod3Vertex
     from ModellingApi import ModellingAPI, debugger
-    from Mod3Mesh import Mod3MeshProperty
-    from Mod3Components import Mod3GroupProperty
+    from Mod3Mesh import Mod3BoundingBox
+    from Mod3Components import Mod3GroupProperty,Mod3HeaderFloatSegment,Mod3HeaderByteSegment   
     from BlenderSupressor import SupressBlenderOps
+    from boundingBoxCalculations import estimateBoundingBox
     from crc import CrcJamcrc
     
 generalhash =  lambda x:  CrcJamcrc.calc(x.encode())
@@ -53,7 +57,7 @@ class MeshClone():
             for mod in self.copy.modifiers:
                 try:
                     bpy.ops.object.modifier_apply(modifier = mod.name)
-                except Exception as e:
+                except:# Exception as e:
                     pass
             #self.copy.select = False
             #bpy.context.scene.objects.active = None
@@ -71,6 +75,27 @@ class MeshClone():
             self.copyObject = None
         return False
 
+class SkeletonMap():
+    def __init__(self,*args):
+        self.boneNamesToIndices = {}
+        self.boneNamesToBoneObject = {}
+        self.boneIndexToBone = {}
+    def __getitem__(self,key):
+        return self.boneNamesToIndices[key]
+    def __setitem__(self,key,value):
+        cix,bone = value
+        self.boneNamesToIndices[key] = cix
+        self.boneNamesToBoneObject[key] = bone
+        self.boneIndexToBone[cix] = bone
+    def __contains__(self,key):
+        return key in self.boneNamesToIndices
+    def getBoneByName(self,key):
+        return self.boneNamesToBoneObject[key]
+    def getBoneByIndex(self,key):
+        return self.boneIndexToBone[cix]
+    def __bool__(self):
+        return bool(self.boneNamesToindices)
+    
 import re
 class BlenderExporterAPI(ModellingAPI):
     MACHINE_EPSILON = 2**-19
@@ -102,9 +127,13 @@ class BlenderExporterAPI(ModellingAPI):
         trail = {}
         options.errorHandler.setSection("Scene Headers")
         BlenderExporterAPI.verifyLoad(bpy.context.scene,"TrailingData",options.errorHandler,trail)
-        BlenderExporterAPI.calculateBoundingBox(bpy.context.scene["hUnkn1"],options)
-        for prop in ["creationDate", "groupCount", "materialCount","vertexIds", "hUnkn1", "hUnkn2"]:
+        BlenderExporterAPI.calculateSceneBounds(header,options)
+        BlenderExporterAPI.getFloatSegment(header,options)
+        BlenderExporterAPI.getByteSegment(header,options)
+        header["creationDate"] = int(time.time())
+        for prop in ["groupCount", "materialCount","vertexIds"]:
             BlenderExporterAPI.verifyLoad(bpy.context.scene,prop,options.errorHandler,header)
+        
         materials = OrderedDict()
         for ix in range(header["materialCount"]):
             BlenderExporterAPI.verifyLoad(bpy.context.scene,"MaterialName%d"%ix,options.errorHandler,materials)
@@ -115,10 +144,45 @@ class BlenderExporterAPI(ModellingAPI):
         options.executeErrors()
         #bpy.context.scene
         return header,  groupProperties, trail["TrailingData"], list(materials.values())
-        
+    
+    @staticmethod
+    def getSegment(writeDestination,options,dataName,segmentName,fields):
+        writeDestination[dataName] = {}
+        data = writeDestination[dataName]
+        prep = {}
+        mapping = {segmentName+":%s"%s:s for s in fields }
+        for field in mapping:
+            BlenderExporterAPI.verifyLoad(bpy.context.scene,field,options.errorHandler,prep)
+        for field in mapping:
+            data[field] = prep[field]
+        return
+    
+    @staticmethod
+    def getFloatSegment(writeDest,options): 
+        BlenderExporterAPI.getSegment(writeDest,options,"floatData","FloatSegment",Mod3HeaderFloatSegment.fields)
+    @staticmethod
+    def getByteSegment(writeDest,options): 
+        BlenderExporterAPI.getSegment(writeDest,options,"byteData","ByteSegment",Mod3HeaderByteSegment.fields)
+    
+    @staticmethod
+    def calculateSceneBounds(writeDestination,options):
+        meshes = BlenderExporterAPI.listMeshes(options)
+        if meshes:
+            minBox = Vector(map(min,zip(*[mesh.bound_box[0] for mesh in meshes])))
+            maxBox = Vector(map(max,zip(*[mesh.bound_box[6] for mesh in meshes])))
+        else:
+            minBox = Vector([0,0,0])
+            maxBox = Vector([0,0,0])
+        writeDestination["boundingData"] = {}
+        writeDestination["boundingData"]["center"] = list((minBox+maxBox)/2)
+        writeDestination["boundingData"]["radius"] = ((maxBox-minBox).length/2)
+        writeDestination["boundingData"]["minBox"] = list(minBox)+[0]
+        writeDestination["boundingData"]["maxBox"] = list(maxBox)+[0]        
+        return
+    
     @staticmethod
     def getSkeletalStructure(options):
-        skeletonMap = {}
+        skeletonMap = SkeletonMap()
         options.errorHandler.setSection("Skeleton")
         rootEmpty = BlenderExporterAPI.getRootEmpty()
         root = options.validateSkeletonRoot(rootEmpty)
@@ -140,87 +204,134 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.setSection("Meshes")
         options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
         meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) 
-                    for mesh in BlenderExporterAPI.listMeshes(options)]
-        meshdata = BlenderExporterAPI.getMeshData(options,boneNames)
+                    for mesh in BlenderExporterAPI.listMeshes(options)]        
         options.validateMaterials(materials)
         options.executeErrors()
-        return meshdata, meshlist, materials
+        return meshlist, materials
     
 # =============================================================================
 # Exporter Functions:
 # =============================================================================    
-    @staticmethod
-    def calculateBoundingBox(writeDestination,options):
-        meshes = BlenderExporterAPI.listMeshes(options)
-        minBox = Vector(map(min,zip(*[mesh.bound_box[0] for mesh in meshes])))
-        maxBox = Vector(map(max,zip(*[mesh.bound_box[6] for mesh in meshes])))
-        writeDestination[2:5] = list((minBox+maxBox)/2)
-        writeDestination[5] = ((maxBox-minBox).length/2)
-        writeDestination[6:9] = list(minBox)
-        writeDestination[10:13] = list(maxBox)
-        return
-    
-    @staticmethod
-    def getMeshData(options,boneNames):
-        if options.boundingBoxes == "Original":  
-            header = {}
-            BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshPropertyCount",options.errorHandler,header)
-            meshProps = []
-            for ix in range(header["MeshPropertyCount"]):
-                meshProp = {}
-                for prop in Mod3MeshProperty.fields:
-                    BlenderExporterAPI.verifyLoad(bpy.context.scene,"MeshProperty%05d:%s"%(ix,prop),options.errorHandler,meshProp)
-                cleanProp = {prop.split(":")[1]:meshProp[prop] for prop in meshProp}
-                meshProps.append(cleanProp)
-        elif options.boundingBoxes == "Explicit":
-            meshProps = []
-            for ix,boundingBox in enumerate((obj for obj in bpy.context.scene.objects 
-                                if obj.type == "LATTICE" and 
-                                "Type" in obj.data and 
-                                obj.data["Type"] == "MOD3_BoundingBox")):
-                meshProps.append(BlenderExporterAPI.calculateLatticeBox(boundingBox,boneNames,options))
-                
-        elif options.boundingBoxes == "Calculate":
-            for mesh in BlenderExporterAPI.listMeshes(options):
-                meshProps.append(BlenderExporterAPI.meshToBox(mesh))        
-        return meshProps
-    
-    @staticmethod
-    def meshToBox(mesh):
-        raise NotImplementedError
-    
-    @staticmethod
-    def calculateLatticeBox(boundingBox,boneNames,options):
-        propname = "MeshProperty:"
-        properties = {}
-        constraints = [c for c in boundingBox.constraints if c.type == "CHILD_OF" and c.target]
-        if not len(constraints):
-            index = options.errorHandler.propertyMissing("MeshProperty:boneIndex")
-        else:
-            if len(constraints)>1:
-                options.errorHandler.propertyDuplicate("MeshProperty:boneIndex")
-            c = constraints[0]
-            if c.target.name not in boneNames:
-                index = 255
-            else:
-                index = boneNames[c.target.name]
         
-        vecmatrad = {}
-        BlenderExporterAPI.verifyLoad(boundingBox.data, "vector", options.errorHandler, vecmatrad, propname+"vector")
-        BlenderExporterAPI.verifyLoad(boundingBox.data, "matrix", options.errorHandler, vecmatrad, propname+"matrix")
-        BlenderExporterAPI.verifyLoad(boundingBox.data, "radius", options.errorHandler, vecmatrad, propname+"radius")
-        rad = vecmatrad["radius"]
-        vec = vecmatrad["vector"]
-        mat = vecmatrad["matrix"]
-        properties["boneIndex"] = index
-        properties["spacer"] = [0xCD]*12
-        properties["center"] = boundingBox.location
-        properties["radius"] = rad
-        properties["boxMin"] = list(boundingBox.location - boundingBox.scale/2)+[0]
-        properties["boxMax"] = list(boundingBox.location + boundingBox.scale/2)+[0]
-        properties["matrix"] = mat
-        properties["vector"] = vec
-        return properties
+    @staticmethod
+    def getBoneVertices(mesh,options,skeletonMap):
+        groups = {}
+        groupToBone = {}
+        groupName = lambda x: mesh.vertex_groups[x].name
+        cannonicalGroupName = lambda w: BlenderExporterAPI.getCannonicalGroupName(w, skeletonMap, options.errorHandler)
+        for group in mesh.vertex_groups:
+            cannonical = cannonicalGroupName(group.name)
+            if cannonical is not None:
+                groupToBone[group.name] = cannonical
+                groups[skeletonMap[cannonical]]=[]
+        for vertex in mesh.data.vertices:
+            weightGroups = vertex.groups
+            if not len(weightGroups):
+                if 255 not in groups:
+                    groups[255] = []
+                groups[255].append(vertex.co)
+            for group in weightGroups:
+                name = groupName(group.group)
+                if name in groupToBone:
+                    skeletonElement = skeletonMap[groupToBone[name]]
+                    boneCoordinates = skeletonMap.getBoneByName(groupToBone[name]).matrix_world.inverted()
+                    groups[skeletonElement].append(boneCoordinates*vertex.co)
+                    #TODO - Skeleton map needs some way to fetch the actual bone
+        #print(mesh.name)
+        #print("|".join(("%d:%d"%(k,len(v)) for k,v in groups.items())))
+        return groups
+    
+    @staticmethod
+    def calculateAABB(verts):
+        minbox = Vector([min((v[0] for v in verts)),min((v[1] for v in verts)),min((v[2] for v in verts))])
+        maxbox = Vector([max((v[0] for v in verts)),max((v[1] for v in verts)),max((v[2] for v in verts))])
+        center = (maxbox-minbox)/2
+        return list(minbox.to_4d()),list(maxbox.to_4d()),center
+    
+    @staticmethod
+    def calculateMVBB(verts):
+        mat,vec = estimateBoundingBox(verts)
+        return [e for v in mat.transposed() for e in v],list(vec), Vector(vec).length
+    
+    @staticmethod
+    def calculateBoundingBoxes(mesh,options,skeletonMap):
+        boneCoordinates = BlenderExporterAPI.getBoneVertices(mesh,options,skeletonMap)
+        boxes = []
+        for coord in boneCoordinates:
+            box = {}
+            boxVert = boneCoordinates[coord]
+            box["aabbMin"],box["aabbMax"],box["aabbCenter"] = BlenderExporterAPI.calculateAABB(boxVert)
+            box["oabbMatrix"],box["oabbVector"],box["radius"]  = BlenderExporterAPI.calculateMVBB(boxVert)
+            box["boneIndex"] = coord
+            boxes.append(box)
+        return sorted(boxes,key = lambda x:  x["boneIndex"] if x["boneIndex"] != 255 else -1)
+    
+    @staticmethod
+    def getBoxBone(box,bones,options):
+        constraints = [c for c in box.constraints if c.type == "CHILD_OF"]
+        if len(constraints) != 1:
+            options.errorHandler.boxConstraintError(box.name)
+        else:
+            c = constraints[0]
+            bone = c.target
+            if not hasattr(bone,"boneFunction"): boneId = 255
+            else:
+                if bone.name not in bones:
+                    options.errorHandler.boxConstraintError(box.name)
+                    boneId = 255
+                else:
+                    boneId = bones[bone.name]
+        return boneId,bone
+    
+    @staticmethod
+    def getBoxClass(mesh,options,bones,boxclass):
+        boxclass = {}
+        for box in [ box for box in mesh.children 
+                    if box.type == "LATTICE" and "Type" in box.data 
+                    and box.data["Type"] == boxclass]:
+            boneIndex,bone = BlenderExporterAPI.getBoxIndex(box,bones,options)
+            if (boneIndex,bone.name) in boxclass:
+                options.errorHandler.propertyDuplicate("Bounding Box Bone %s"%(boneIndex,bone.name), boxclass, "Bone Index")
+            boxclass[(boneIndex,bone.name)] = box
+        return boxclass
+    
+    @staticmethod
+    def boxFromPair(bone,aabb,mvbb):
+        box = {}
+        s = mvbb.scale.copy()
+        mvbb.scale = [1,1,1]
+        matrix,vector = [e for v in mvbb.matrix_world.copy().transposed() for e in v], list(s.to_4d())
+        mvbb.scale = s
+        radius = vector.norm()/2
+        
+        box["boneIndex"] = bone
+        box["aabbCenter"] = list(aabb.location.to_4d())
+        box["radius"] = radius
+
+        scaling = Vector(list(abs,aabb.scale))
+        box["aabbMin"] = list((aabb.locatoin-scaling).to_4d())
+        box["aabbMax"] = list((aabb.locatoin+scaling).to_4d())
+        
+        box["oabbMatrix"] = matrix
+        box["oabbVector"] = vector
+        return box
+        
+    @staticmethod
+    def getLatticeBoxes(mesh,options,boneNames):
+        mvbb = BlenderExporterAPI.getBoxClass(mesh,options,boneNames,"MOD3_BoundingBox_MVBB")
+        aabb = BlenderExporterAPI.getBoxClass(mesh,options,boneNames,"MOD3_BoundingBox_AABB")
+        boxes = []
+        for bone in mvbb:
+            if bone not in aabb:
+                options.errorHandler.missingBoxPair(bone[1],"AABB")#missing in AABB
+        for bone in sorted(aabb,key= lambda x: -1 if x[0]==255 else x[0]):
+            if bone not in mvbb:
+                options.errorHandler.missingBoxPair(bone[1],"MVBB")
+            else:
+                ix,name = bone
+                box = BlenderExporterAPI.boxFromBoxPair(ix,aabb[bone],mvbb[bone])
+                boxes.append(box)
+        return sorted(boxes,key = lambda x:  x["boneIndex"] if x["boneIndex"] != 255 else -1)
     
     @staticmethod
     def getRootEmpty():
@@ -278,12 +389,12 @@ class BlenderExporterAPI(ModellingAPI):
             bone["length"]=math.sqrt(bone["x"]**2 +bone["y"]**2+ bone["z"]**2)
             cix = len(storage)
             storage.append({"bone":bone,"AMatrix":AMatrix,"LMatrix":LMatrix})
-            skeletonMap[child.name] = cix
+            skeletonMap[child.name] = cix,child
             BlenderExporterAPI.recursiveEmptyDeconstruct(cix, child, storage, skeletonMap, errorHandler)
        
     @staticmethod
     def getTarget(bone, errorHandler):
-        return None if not hasattr(bone,"MHW_Symmetric_pair") else bone.MHW_Symmetric_pair.name
+        return None if not (hasattr(bone,"MHW_Symmetric_Pair") and bone.MHW_Symmetric_Pair) else bone.MHW_Symmetric_Pair.name
         
     
     @staticmethod
@@ -293,8 +404,9 @@ class BlenderExporterAPI(ModellingAPI):
             meshProp = {}
             if options.setHighestLoD:
                 mesh.data["lod"] = 0xFFFF
-            for prop in ["unkn","visibleCondition","lod","unkn2","unkn3","blockLabel",
-                        "boneremapid","unkn9", "material"]  :
+            for prop in ["shadowCast","visibleCondition","lod","weightDynamics","unkn3",
+                         "blockLabel", "mapData", "intUnknown", "unknownIndex",
+                        "material"]:
                 BlenderExporterAPI.verifyLoad(mesh.data, prop, options.errorHandler, meshProp)
             meshProp["blocktype"] = BlenderExporterAPI.invertBlockLabel(meshProp["blockLabel"], options.errorHandler)
             groupName = lambda x: mesh.vertex_groups[x].name
@@ -331,7 +443,12 @@ class BlenderExporterAPI(ModellingAPI):
             if len(faces)>4294967295:
                 options.errorHandler.faceCountOverflow()
             meshProp["materialIdx"] = options.updateMaterials(meshProp,materials)
-        return {"mesh":pymesh, "faces":faces, "properties":meshProp, "meshname":mesh.name}
+            if options.calculateBoundingBox:
+                boundingboxes = BlenderExporterAPI.calculateBoundingBoxes(mesh,options,skeletonMap)
+            else:
+                boundingboxes = BlenderExporterAPI.getLatticeBoxes(mesh,options,skeletonMap)
+        return {"mesh":pymesh, "faces":faces, "properties":meshProp, "meshname":mesh.name,
+                "boundingBoxes":boundingboxes}
     
     @staticmethod
     def invertBlockLabel(blockLabel, errorHandler):
@@ -409,12 +526,16 @@ class BlenderExporterAPI(ModellingAPI):
         
     weightCaptureGroup = BufferedWeight.weightCaptureGroup  
     @staticmethod
-    def validGroupName(weightName, skeletonNames, errorHandler):
+    def validGroupName(*args):
+        return BlenderExporterAPI.getCannonicalGroupName(*args) is not None
+        
+    @staticmethod
+    def getCannonicalGroupName(weightName,skeletonNames,errorHandler):
         if weightName in skeletonNames:
-            return True
+            return weightName
         match = re.match(BlenderExporterAPI.weightCaptureGroup,weightName)
         if match and match.group(1)+match.group(2) in skeletonNames:
-            return True
+            return match.group(1)+match.group(2)
         else:
             errorHandler.invalidGroupName(match.group(1)+match.group(2) if match else weightName)
-            return False
+            return None

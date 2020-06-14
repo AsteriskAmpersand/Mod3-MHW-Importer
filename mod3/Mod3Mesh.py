@@ -19,26 +19,52 @@ except:
     
 class Mod3MeshPartHeader(CS.PyCStruct):
     fields = OrderedDict([
-            ("unkn","short"),
-            ("vertexCount","ushort"),
+            ("shadowCast","short"),
+              #19: Normal Shadows
+            ("vertexCount","ushort"),#Count of vertices
             ("visibleCondition","ushort"),
             ("materialIdx","ushort"),
             ("lod","long"),
-            ("unkn2","short"),
+            ("weightDynamics","short"),
+               #01:        1 - No bone weights
+               #03:       11 - No bone weights
+               #05:      101 - No bone weights
+               #07:      111 - No bone weights
+               #09:     1001 - One bone movement
+               #11:     1011 - One bone movement
+               #13:     1101 - One bone movement, but more than one weight per mesh
+               #15:     1111 - One bone movement
+               #17:    10001
+               #25:    11001 - Multibone Movement
+               #33:   100001 - Multibone Movement
+               #41:   101001
+               #49:   110001
+               #57:   111001
+               #65:  1000001 - 8wt Multibone Movement (8wt required)
+               #129:10000001 - 8wt Multibone Movement (8wt required)
             ("blockSize","ubyte"),
             ("unkn3","byte"),
-            ("vertexSub","ulong"),
-            ("vertexOffset","ulong"),
+            ("vertexSub","ulong"),#Running subtotal of vertices of the same kind before spill (0xFFFF) before current
+            ("vertexOffset","ulong"),#Offset to start of current kind vertex block within vertex array
             ("blocktype","ulong"),
-            ("faceOffset","ulong"),
-            ("faceCount","ulong"),
-            ("vertexBase","ulong"),
-            ("boneremapid","ubyte"),
-            ("unkn9","ubyte[39]")
+            ("faceOffset","ulong"),#Offset to start of faces within face array
+            ("faceCount","ulong"),#Count of faces
+            ("vertexBase","ulong"),#Running subtotal of spilled vertices of the same kind 
+            ("NULL_0","ubyte"),#0
+            ("boundingBoxCount","ubyte"),
+            ("unknownIndex","ushort"),
+            ("vertexSubMirror","ushort"),#Copy of Vertex Sub
+            ("vertexIndexSub","ushort"),#Current last vertex index on the subtotal (Subtotal + Count - 1) after current
+            ("mapData","short[2]"),#Not FF on maps
+            ("NULL_1","int"),
+            ("intUnknown","int"),
+            ("vertexSubTotal","ulong"),#Vertex running subtotal cumulative
+            ("NULL_2","int[4]")
             ])
-        
-    requiredProperties = ["unkn","visibleCondition","lod","unkn2","unkn3","blocktype",
-                    "boneremapid","unkn9", "materialIdx"]  
+    defaultProperties = {"NULL_0":0,"NULL_1":0,"NULL_2":[0]*4,"boundingBoxCount":None}
+    requiredProperties = ["shadowCast","visibleCondition","lod",
+                          "weightDynamics","unkn3","blocktype","mapData",
+                          "unknownIndex", "intUnknown", "materialIdx"]  
     #"materialIdx"      
     def externalProperties(self):
         return {prop:self.__getattribute__(prop)
@@ -52,6 +78,7 @@ class Mod3Mesh():
         self.Faces = []
         self.vertexOffset = vertexOffset
         self.faceOffset = faceOffset
+        self.BoundingBoxes = []
         
     def marshall(self, data):
         self.Header.marshall(data)
@@ -71,14 +98,17 @@ class Mod3Mesh():
         header = mesh["properties"]
         faces = mesh["faces"]
         vertices = mesh["mesh"]
+        boxes = mesh["boundingBoxes"]
         self.Header.construct(header)
         self.Header.blockSize = len(Mod3Vertex(self.Header.blocktype))
+        self.Header.boundingBoxCount = len(boxes)
         self.Faces = [Mod3Face() for _ in faces]
         for modface, blenface in zip(self.Faces, faces):
             modface.construct(blenface)
         self.Vertices = [Mod3Vertex(self.Header.blocktype) for _ in vertices]
         for modvert, blenvert in zip(self.Vertices,vertices):
             modvert.construct(blenvert)
+        
             
     def verify(self):
         self.Header.verify()
@@ -94,26 +124,40 @@ class Mod3Mesh():
         self.Header.vertexCount = self.vertexCount()
         self.Header.faceCount = self.faceCount()*3
 
-    def updateVertexOffsets(self, prevSub, prevBase, prevVertCount, prevOffset, prevBlockSize):
+    def updateVertexOffsets(self,
+                            vCount, 
+                            vBufferLen,
+                            prevBase,
+                            prevVertexSub,
+                            prevBlockSize):
             #When blocksizes are equal Sub increases
             #when different the sub becomes an offset and resets
             #when Sub would exceed WITH CURRENT COUNT it instead goes to Base
-            blockSize = self.Header.blockSize
-            if self.Header.blockSize != prevBlockSize:
-                self.Header.vertexOffset = prevSub + prevBase + prevVertCount + prevOffset
-                self.Header.vertexSub = 0
-                self.Header.vertexBase = 0
+            #print(("%07d | "*5)%(vCount,vBufferLen,prevBase,prevVertexSub,prevBlockSize))
+            h = self.Header
+            
+            if h.blockSize != prevBlockSize:
+                h.vertexOffset = vBufferLen
+                h.vertexSub = 0
+                h.vertexBase = 0            
             else:
-                prevSub, prevBase, prevVertCount= prevSub//blockSize,prevBase//blockSize,prevVertCount//blockSize
-                if self.Header.vertexCount + prevSub + prevVertCount > 0xFFFF:
-                    self.Header.vertexSub = 0
-                    self.Header.vertexBase = prevSub + prevBase + prevVertCount
+                if h.vertexCount + prevVertexSub > 0xFFFF:
+                    h.vertexSub = 0
+                    h.vertexBase = prevBase + prevVertexSub
                 else:
-                    self.Header.vertexSub =  prevSub + prevVertCount
-                    self.Header.vertexBase = prevBase
-                self.Header.vertexOffset = prevOffset
-            return self.Header.vertexSub*blockSize, self.Header.vertexBase*blockSize, self.Header.vertexCount*blockSize, self.Header.vertexOffset, self.Header.blockSize
-               
+                    h.vertexSub =  prevVertexSub
+                    h.vertexBase = prevBase
+                h.vertexOffset = vBufferLen-(h.vertexBase+h.vertexSub)*h.blockSize
+            h.vertexSubMirror = h.vertexSub
+            h.vertexSubTotal =  vCount
+            h.vertexIndexSub = h.vertexSub + h.vertexCount -1
+            return (vCount+h.vertexCount, 
+                    vBufferLen+h.vertexCount*h.blockSize,
+                    h.vertexBase,
+                    h.vertexSub + h.vertexCount,
+                    h.blockSize)
+            #prevSub, prevBase, prevVertSub, prevVertTotal, prevOffset, prevBlockSize
+        
     def updateFaceOffsets(self, baseOffset, currentOffset):
         self.faceOffset = baseOffset
         if currentOffset % 2:
@@ -183,7 +227,7 @@ class Mod3Mesh():
         vertices, weightGroups, normals, tangents, uvs, colour = self.decomposeVertices(self.Vertices, splitWeights)
         return {"vertices":vertices, "properties":properties, "faces":faces, 
                 "weightGroups":weightGroups, "normals":normals, "tangents":tangents, 
-                "uvs":uvs, "colour":colour}
+                "uvs":uvs, "colour":colour, "boundingBoxes":self.BoundingBoxes}
         
     def faceCount(self):
         return len(self.Faces)
@@ -205,7 +249,7 @@ class Mod3Mesh():
 class Mod3MeshCollection():
     def __init__(self, meshCount=0, vertexOffset=None, faceOffset=None):
         self.Meshes = [Mod3Mesh(vertexOffset, faceOffset) for _ in range(meshCount)]
-        self.MeshProperties = Mod3MeshProperties()
+        self.BoundingBoxes = Mod3BoundingBoxes()
         self.vertexOffset = vertexOffset
         self.faceOffset = faceOffset
         
@@ -216,7 +260,11 @@ class Mod3MeshCollection():
                 mesh.marshall(data)
             except:
                 data.seek(pos+len(Mod3MeshPartHeader()))
-        self.MeshProperties.marshall(data)
+        self.BoundingBoxes.marshall(data)
+        BoundingBoxes = iter(self.BoundingBoxes)
+        for mesh in self.Meshes:            
+            for _ in range(mesh.Header.boundingBoxCount):
+                mesh.BoundingBoxes.append(next(BoundingBoxes))
         
     def serialize(self):
         meshes, vertices, faces = [],[],[]
@@ -225,23 +273,24 @@ class Mod3MeshCollection():
             meshes.append(m)
             vertices.append(v)
             faces.append(f)
-        return b''.join(meshes)+self.MeshProperties.serialize()+b''.join(vertices)+b''.join(faces)
+        return b''.join(meshes)+self.BoundingBoxes.serialize()+b''.join(vertices)+b''.join(faces)
     
-    def construct(self, meshparts, meshData):
+    def construct(self, meshparts):
         for blenMesh,modMesh in zip(meshparts, self.Meshes):
             modMesh.construct(blenMesh)
+            
         #self.Meshes.sort(key = lambda x: x.Header.blockSize)
-        self.MeshProperties.construct(meshData)
+        self.BoundingBoxes.construct(sum(map(lambda x:x["boundingBoxes"],meshparts),[]))
         
     def verify(self):
         [m.verify for m in self.Meshes]
-        self.MeshProperties.verify()
+        self.BoundingBoxes.verify()
     
     def Count(self):
         return len(self.Meshes)
     
     #def __len__(self):
-    #    return sum([len(mesh) for mesh in self.Meshes]) + len(self.MeshProperties)
+    #    return sum([len(mesh) for mesh in self.Meshes]) + len(self.BoundingBoxes)
     
     def realignFaces(self):
         #TODO: for each meshpart add vertexsub to each face
@@ -250,27 +299,17 @@ class Mod3MeshCollection():
                 face.adjust(mesh.Header.vertexSub)
     
     def updateCountsOffsets(self):
-        #Meshparts
-        #("vertexSub","ulong"),
-        #("vertexOffset","ulong"),
-        #("faceOffset","ulong"),
-        #("vertexBase","ulong"),
         vCount = 0
         fCount = 0
-        vBufferLen = 0
-        
-        prevSub = 0
+        vBufferLen = 0        
+        prevVertexSub = 0
         prevBase = 0
-        prevVertCount = 0
         prevBlockSize = 0
-        prevOffset = 0
         for mesh in self.Meshes:
             mesh.updateCounts()
-            prevSub, prevBase, prevVertCount, prevOffset, prevBlockSize = mesh.updateVertexOffsets(prevSub, prevBase, prevVertCount, prevOffset, prevBlockSize)
-            vCount+=mesh.vertexCount()
+            vCount,vBufferLen,prevBase,prevVertexSub,prevBlockSize = mesh.updateVertexOffsets(vCount,vBufferLen,prevBase,prevVertexSub,prevBlockSize)
             fCount+=mesh.faceCount()
-            vBufferLen+=mesh.vertexBuffer()
-        self.vertexOffset = len(Mod3Mesh(0,0).Header)*len(self.Meshes) + len(self.MeshProperties)
+        self.vertexOffset = len(Mod3Mesh(0,0).Header)*len(self.Meshes) + len(self.BoundingBoxes)
         self.faceOffset = self.vertexOffset + vBufferLen
         currentFaceOffset = 0
         for mesh in self.Meshes:
@@ -290,10 +329,10 @@ class Mod3MeshCollection():
         return sum(map(lambda x: x.edgeCount(), self.Meshes))
     
     def sceneProperties(self):
-        return self.MeshProperties.sceneProperties()
+        return self.BoundingBoxes.sceneProperties()
     
     def boundingBoxes(self):
-        return self.MeshProperties.boundingBoxes()
+        return self.BoundingBoxes.boundingBoxes()
     
     def __getitem__(self, ix):
         return self.Meshes[ix]
@@ -330,15 +369,15 @@ class Mod3Face(CS.PyCStruct):
         
 class BoundingBox():
     def __init__(self,mod3bb):
-        self._center = Vector(mod3bb.center)
-        self._dimensions = Vector((Vector(mod3bb.boxMax)-Vector(mod3bb.boxMin))[:3])
-        mat = mod3bb.matrix
+        self._center = Vector(mod3bb.aabbCenter)
+        self._dimensions = Vector((Vector(mod3bb.aabbMax)-Vector(mod3bb.aabbMin))[:3])
+        mat = mod3bb.oabbMatrix
         #rows = [[mat[i+4*e] for e in range(4)] for i in range(4)]
-        rows = [[mat[4*i+e] for e in range(4)] for i in range(4)]
+        rows = [[mat[4*e+i] for e in range(4)] for i in range(4)]
         self._matrix = Matrix(rows)
-        self._vector = Vector(mod3bb.vector)[:3]
+        self._vector = Vector(mod3bb.oabbVector[:3])
         self._boneIndex = mod3bb.boneIndex
-        self._metadata = {field:getattr(mod3bb,field) for field in Mod3MeshProperty.fields}
+        self._metadata = {field:getattr(mod3bb,field) for field in Mod3BoundingBox.fields}
     def center(self):
         return self._center
     def scale(self):
@@ -353,16 +392,16 @@ class BoundingBox():
         return self._boneIndex
     
 
-class Mod3MeshProperty(CS.PyCStruct):
+class Mod3BoundingBox(CS.PyCStruct):
     fields = OrderedDict([
             ("boneIndex","int"),
             ("spacer","ubyte[12]"),
-            ("center","float[3]"),
+            ("aabbCenter","float[3]"),
             ("radius","float"),
-            ("boxMin","float[4]"),
-            ("boxMax","float[4]"),
-            ("matrix","float[16]"),
-            ("vector","float[4]"),
+            ("aabbMin","float[4]"),
+            ("aabbMax","float[4]"),
+            ("oabbMatrix","float[16]"),
+            ("oabbVector","float[4]"),
             ])
     requiredProperties = { f for f in fields if f != "spacer"}
     defaultProperties = { "spacer":[0xCD]*12}
@@ -371,39 +410,42 @@ class Mod3MeshProperty(CS.PyCStruct):
     def boundingBox(self):
         return BoundingBox(self)
 
-class Mod3MeshProperties(CS.PyCStruct):
+class Mod3BoundingBoxes(CS.PyCStruct):
     fields = OrderedDict([("count","uint")])
     
     def marshall(self, data):
         super().marshall(data)
-        self.properties = [Mod3MeshProperty() for _ in range(self.count)]
-        [x.marshall(data) for x in  self.properties]
+        self.BoundingBoxes = [Mod3BoundingBox() for _ in range(self.count)]
+        [x.marshall(data) for x in  self.BoundingBoxes]
         
     def construct(self, data):
         data = self.decompose(data)
         self.count = len(data)
-        self.properties = [Mod3MeshProperty() for _ in range(self.count)]
-        [x.construct(d) for x,d in zip(self.properties,data)]
+        self.BoundingBoxes = [Mod3BoundingBox() for _ in range(self.count)]
+        [x.construct(d) for x,d in zip(self.BoundingBoxes,data)]
         return self
     
     def decompose(self,propertyMass):
         return propertyMass
     
     def serialize(self):
-        return super().serialize() + b''.join([prop.serialize() for prop in self.properties])
+        return super().serialize() + b''.join([prop.serialize() for prop in self.BoundingBoxes])
     
     def __len__(self):
-        return super().__len__() + sum([len(prop) for prop in self.properties])
+        return super().__len__() + sum([len(prop) for prop in self.BoundingBoxes])
     
     def sceneProperties(self):
-        properties = {"MeshProperty%05d:%s"%(ix,prop):val for ix, propertyFamily in enumerate(self.properties) for prop,val in propertyFamily.sceneProperties().items()}
+        properties = {"MeshProperty%05d:%s"%(ix,prop):val for ix, propertyFamily in enumerate(self.BoundingBoxes) for prop,val in propertyFamily.sceneProperties().items()}
         properties["MeshPropertyCount"]=self.count
         return properties
     
     def boundingBoxes(self):
-        return [prop.boundingBox() for prop in self.properties]
+        return [box.boundingBox() for box in self.BoundingBoxes]
     
     def verify(self):
         if self.count == None:
             raise AssertionError("Attribute %s is not initialized."%"count")
         super().verify()
+        
+    def __iter__(self):
+        return iter(self.boundingBoxes())

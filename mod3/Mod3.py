@@ -41,11 +41,11 @@ class Mod3():
         data.seek(self.Header.meshOffset)
         self.MeshParts = self.MeshParts(self.Header.meshCount, self.Header.vertexOffset, self.Header.facesOffset)
         self.MeshParts.marshall(data)
-        data.seek(self.Header.unknOffset)
+        data.seek(self.Header.trailOffset)
         self.Trailing = self.Trailing()
         self.Trailing.marshall(data)
 
-    def construct(self, fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, meshData, trailingData):
+    def construct(self, fileHeader, materials, groupStuff, skeleton, lmatrices, amatrices, meshparts, trailingData):
         self.Header = self.Header()
         self.Header.construct(fileHeader)
         self.Skeleton = self.Skeleton(len(skeleton))
@@ -55,7 +55,7 @@ class Mod3():
         self.Materials = self.Materials(len(materials))
         self.Materials.construct(materials)
         self.MeshParts = self.MeshParts(len(meshparts))
-        self.MeshParts.construct(meshparts, meshData)
+        self.MeshParts.construct(meshparts)
         self.Trailing = self.Trailing()
         self.Trailing.construct(trailingData)
         self.calculateCountsOffsets()
@@ -110,7 +110,7 @@ class Mod3():
         #("facesOffset","uint64"),
         self.Header.facesOffset = self.Header.meshOffset + self.MeshParts.getFacesOffset()
         #("unknOffset","uint64"),
-        self.Header.unknOffset = self.align(self.Header.meshOffset + self.MeshParts.getBlockOffset(),4)
+        self.Header.trailOffset = self.align(self.Header.meshOffset + self.MeshParts.getBlockOffset(),4)
           
     @staticmethod
     def align(offset, grid = 16):
@@ -127,7 +127,7 @@ class Mod3():
         serialization+=self.Materials.serialize()
         serialization+=self.pad(len(serialization),self.Header.meshOffset)
         serialization+=self.MeshParts.serialize()
-        serialization+=self.pad(len(serialization),self.Header.unknOffset)
+        serialization+=self.pad(len(serialization),self.Header.trailOffset)
         serialization+=self.Trailing.serialize()
         return serialization
     
@@ -173,60 +173,27 @@ if __name__ in "__main__":
     from pathlib import Path
     
     chunkpath = Path(r"E:\MHW\chunkG0")
-    maxing = 2
-    path = ""
+    values = set()
+    #with open(r"G:\Wisdom\modelData.txt","w") as outf:
+    #    def print(*args):
+    #        x: outf.write(''.join(map(str,args))+'\n')
+    unkn1 = [set() for i in range(64)]
     for modelf in chunkpath.rglob("*.mod3"):
+        #modelf = Path(r"E:\MHW\chunkG0\accessory\askill\askill001\mod\common\askill_mantle001.mod3")
         modelfile = FL.FileLike(modelf.open("rb").read())
         model = Mod3()
         model.marshall(modelfile)
+                
+        modelfile = FL.FileLike(modelf.open("rb").read())
+        model2 = Mod3()
+        model2.marshall(modelfile)
+        model2.calculateCountsOffsets()
         
-        for group in model.GroupProperties:
-            if group.unkn[0] != 0:
-                print(group)
-                print(modelf)
-        #if model.Header.groupCount > 2:
-        #    #print(modelf)
-        #    if model.Header.groupCount > maxing:
-        #        maxing = model.Header.groupCount
-        #        path = modelf
-        #        print ("%s:%d"%(modelf,maxing))
-    #print("Max found with %d at %s"%(maxing,path))
-        
-    def getMonsterMakeDate():
-        import time
-        import datetime
-        
-        chunkpath = Path(r"E:\MHW\chunkG0\em")
-        superset = set()
-        dateList = []
-        for modelf in chunkpath.rglob("*.mod3"):
-            modelfile = FL.FileLike(modelf.open("rb").read())
-            model = Mod3()
-            model.marshall(modelfile)
-            dateList.append((modelf,time.ctime(model.Header.creationDate)))
-            
-            
-        codes = r"G:\Wisdom\MonsterCodes.csv"
-        renaming = {line.split(",")[0].lower():line.split(",")[1].replace("\n","") for line in open(codes,"r").readlines()}
-        def convert(monsterfile):
-            parts = monsterfile.split("_")
-            if "ems" in parts[0]:
-                return "Small Monster %s"%parts[1]
-            return "%s %s %s"%(renaming[parts[0]],{
-                    "00":"","01":"Subspecies","02":"Rare Species","05":"Variant",
-                    "03":"Deviant","horn":"Horn","rock":"Rock","bombrock":"Bomb Rock",
-                    "hardrock":"Hard Rock"}[parts[1]],' '.join(parts[2:]))
-        for entry in sorted(dateList,key = lambda x: datetime.datetime.strptime(x[1], "%a %b %d %H:%M:%S %Y")):
-            print("%s: %s"%(convert(entry[0].stem),str(entry[1])))
-            #print(modelf)
-            #print(time.ctime(model.Header.creationDate))
-"""
-        #model.GroupProperties
-        trail = model.Trailing.sceneProperties()["TrailingData"]
-        if trail not in superset:
-            print(modelf)
-            print(trail)
-        superset.add(trail)
+        for mi,(m0,m1) in enumerate(zip(model.MeshParts,model2.MeshParts)):
+            for p in Mod3M.Mod3MeshPartHeader.fields:
+                p0 = getattr(m0.Header,p)
+                p1 = getattr(m1.Header,p)
+                if p0 != p1:
+                    print("%s %d: %d - %d"%(p,mi,p0,p1))
+                    raise ValueError(modelf)
         #raise
-    print(superset)
-"""     
