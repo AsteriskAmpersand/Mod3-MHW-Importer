@@ -236,10 +236,9 @@ class BlenderExporterAPI(ModellingAPI):
                     skeletonElement = skeletonMap[groupToBone[name]]
                     boneCoordinates = skeletonMap.getBoneByName(groupToBone[name]).matrix_world.inverted()
                     groups[skeletonElement].append(boneCoordinates*vertex.co)
-                    #TODO - Skeleton map needs some way to fetch the actual bone
         #print(mesh.name)
         #print("|".join(("%d:%d"%(k,len(v)) for k,v in groups.items())))
-        return groups
+        return {k:i for k,i in groups.items() if len(i)>0}
     
     @staticmethod
     def calculateAABB(verts):
@@ -263,7 +262,8 @@ class BlenderExporterAPI(ModellingAPI):
             box["aabbMin"],box["aabbMax"],box["aabbCenter"] = BlenderExporterAPI.calculateAABB(boxVert)
             box["oabbMatrix"],box["oabbVector"],box["radius"]  = BlenderExporterAPI.calculateMVBB(boxVert)
             box["boneIndex"] = coord
-            boxes.append(box)
+            if box["radius"]:
+                boxes.append(box)
         return sorted(boxes,key = lambda x:  x["boneIndex"] if x["boneIndex"] != 255 else -1)
     
     @staticmethod
