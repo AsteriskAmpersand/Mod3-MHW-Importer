@@ -21,6 +21,9 @@ class Mod3MeshPartHeader(CS.PyCStruct):
     fields = OrderedDict([
             ("shadowCast","short"),
               #19: Normal Shadows
+              
+              #0001 : Render Object
+              #0010 : Cast Shadow
             ("vertexCount","ushort"),#Count of vertices
             ("visibleCondition","ushort"),
             ("materialIdx","ushort"),

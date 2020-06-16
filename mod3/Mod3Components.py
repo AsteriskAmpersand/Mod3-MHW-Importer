@@ -75,6 +75,10 @@ class MOD3Header(CS.PyCStruct):
         self.Boundaries.construct(data["boundingData"])
         self.FloatSegment.construct(data["floatData"])
         self.ByteSegment.construct(data["byteData"])
+    def serialize(self):
+        return super().serialize()+b''.join(seg.serialize() for seg in [self.Boundaries,self.FloatSegment,self.ByteSegment])
+    def __len__(self):
+        return super().__len__() + sum([len(seg) for seg in [self.Boundaries,self.FloatSegment,self.ByteSegment]])
     scenePropertyList = ["vertexIds", "groupCount", "materialCount"]
     defaultProperties = {"id":0x444F4D,"version":237,"version2":0,"secondBufferSize":0,"unkOffset2":0}
     requiredProperties = set(scenePropertyList)

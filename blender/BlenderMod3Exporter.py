@@ -154,7 +154,7 @@ class BlenderExporterAPI(ModellingAPI):
         for field in mapping:
             BlenderExporterAPI.verifyLoad(bpy.context.scene,field,options.errorHandler,prep)
         for field in mapping:
-            data[field] = prep[field]
+            data[mapping[field]] = prep[field]
         return
     
     @staticmethod
@@ -245,12 +245,12 @@ class BlenderExporterAPI(ModellingAPI):
         minbox = Vector([min((v[0] for v in verts)),min((v[1] for v in verts)),min((v[2] for v in verts))])
         maxbox = Vector([max((v[0] for v in verts)),max((v[1] for v in verts)),max((v[2] for v in verts))])
         center = (maxbox-minbox)/2
-        return list(minbox.to_4d()),list(maxbox.to_4d()),center
+        return list(minbox)+[0],list(maxbox)+[0],center
     
     @staticmethod
     def calculateMVBB(verts):
         mat,vec = estimateBoundingBox(verts)
-        return [e for v in mat.transposed() for e in v],list(vec), Vector(vec).length
+        return [e for v in mat.transposed() for e in v],list(vec)+[0], Vector(vec).length
     
     @staticmethod
     def calculateBoundingBoxes(mesh,options,skeletonMap):
@@ -309,8 +309,8 @@ class BlenderExporterAPI(ModellingAPI):
         box["radius"] = radius
 
         scaling = Vector(list(abs,aabb.scale))
-        box["aabbMin"] = list((aabb.locatoin-scaling).to_4d())
-        box["aabbMax"] = list((aabb.locatoin+scaling).to_4d())
+        box["aabbMin"] = list((aabb.location-scaling))+[0]
+        box["aabbMax"] = list((aabb.location+scaling))+[0]
         
         box["oabbMatrix"] = matrix
         box["oabbVector"] = vector

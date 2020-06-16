@@ -106,13 +106,13 @@ class ErrorHandler():
                               
                         "groupCount":0,"vertexIds":0xFFFF, "materialCount":0,
                         
-                        "ByteSegment:editorClippingDistance":15000,
-                        "ByteSegment:unknSegmentStart":[1,5],
-                        "ByteSegment:unknData":[0,1,1,1, 1,1,1,1],
-                        "ByteSegment:unknData2":[0,1,1,1, 1,1,1,1],
-                        "ByteSegment:unknSegmentContinue":1,
-                        "ByteSegment:lodDistances":[360,60,20,10,10],
-                        "FloatSegment:unkn1":[1]*64,
+                        "FloatSegment:editorClippingDistance":15000,
+                        "FloatSegment:unknSegmentStart":[1,5],
+                        "FloatSegment:unknData":[0,1,1,1, 1,1,1,1],
+                        "FloatSegment:unknData2":[0,1,1,1, 1,1,1,1],
+                        "FloatSegment:unknSegmentContinue":1,
+                        "FloatSegment:lodDistances":[360,60,20,10,10],
+                        "ByteSegment:unkn1":[1]*64,
                         
                         "TrailingData":[0x04,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00],                        
                         "shadowCast":19,"weightDynamics":33,
