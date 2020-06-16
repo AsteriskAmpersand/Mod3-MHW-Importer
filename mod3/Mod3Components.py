@@ -41,9 +41,9 @@ class MOD3Header(CS.PyCStruct):
             ("id","long"),
             ("version","ubyte"),
             ("version2","ubyte"),
-            ("boneCount","short"),
-            ("meshCount","short"),
-            ("materialCount","short"),
+            ("boneCount","ushort"),
+            ("meshCount","ushort"),
+            ("materialCount","ushort"),
             ("vertexCount","long"),
             ("faceCount","long"),
             ("vertexIds","long"),#num_edges

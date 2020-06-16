@@ -19,7 +19,7 @@ except:
     
 class Mod3MeshPartHeader(CS.PyCStruct):
     fields = OrderedDict([
-            ("shadowCast","short"),
+            ("shadowCast","ushort"),
               #19: Normal Shadows
               
               #0001 : Render Object
@@ -28,7 +28,7 @@ class Mod3MeshPartHeader(CS.PyCStruct):
             ("visibleCondition","ushort"),
             ("materialIdx","ushort"),
             ("lod","long"),
-            ("weightDynamics","short"),
+            ("weightDynamics","ushort"),
                #01:        1 - No bone weights
                #03:       11 - No bone weights
                #05:      101 - No bone weights
@@ -46,7 +46,7 @@ class Mod3MeshPartHeader(CS.PyCStruct):
                #65:  1000001 - 8wt Multibone Movement (8wt required)
                #129:10000001 - 8wt Multibone Movement (8wt required)
             ("blockSize","ubyte"),
-            ("unkn3","byte"),
+            ("unkn3","ubyte"),
             ("vertexSub","ulong"),#Running subtotal of vertices of the same kind before spill (0xFFFF) before current
             ("vertexOffset","ulong"),#Offset to start of current kind vertex block within vertex array
             ("blocktype","ulong"),
