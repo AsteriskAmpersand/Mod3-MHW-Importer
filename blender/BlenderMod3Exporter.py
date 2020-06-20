@@ -197,7 +197,9 @@ class BlenderExporterAPI(ModellingAPI):
     
     @staticmethod
     def listMeshes(options):
-        return sorted([o for o in bpy.context.scene.objects if o.type=="MESH" and (options.exportHidden or not o.hide)], key=lambda x: x.data.name)
+        return sorted([o for o in bpy.context.scene.objects 
+                       if o.type=="MESH" and (options.exportHidden or not o.hide)
+                    ,key=lambda x: x.data.name)
     
     @staticmethod
     def getMeshparts(options, boneNames, materials):
