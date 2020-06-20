@@ -199,6 +199,7 @@ class BlenderExporterAPI(ModellingAPI):
     def listMeshes(options):
         return sorted([o for o in bpy.context.scene.objects 
                        if o.type=="MESH" and (options.exportHidden or not o.hide)
+                           and not("Type" in o.data and o.data["Type"]=="MOD3_VM_Mesh")]
                     ,key=lambda x: x.data.name)
     
     @staticmethod

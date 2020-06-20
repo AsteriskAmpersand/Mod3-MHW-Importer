@@ -129,9 +129,9 @@ class ErrorHandler():
         
     def propertyMissing(self, propertyName):
         if "MeshProperty" in propertyName and "Count" not in propertyName:
-            propertyName = "MeshProperty"+propertyName.split(":")[1]
+            propertyName = "MeshProperty:"+propertyName.split(":")[1]
         if "GroupProperty" in propertyName and "Count" not in propertyName:
-            propertyName = "GroupProperty"+propertyName.split(":")[1]
+            propertyName = "GroupProperty:"+propertyName.split(":")[1]
         self.__setattr__(self.propertyLevel,True)
         if self.propertyLevel != "Ignore":
             message = "%s: Missing Property %s, defaults to %s"%(self.propertyLevel, propertyName, str(self.propertyDefaults[propertyName]))
