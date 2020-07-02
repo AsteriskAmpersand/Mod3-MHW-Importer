@@ -158,7 +158,7 @@ def checkExact(f):
     def projectionChecked(points,edges):
         dim,r,u,v = getDimension(points)
         if dim == -1:
-            return Matrix.identity(4),Vector([0,0,0])
+            return Matrix.Identity(4),Vector([0,0,0])
         elif dim == 0:
             v = lambda x,y,z: Vector((x,y,z))
             e1,e2,e3=v(1,0,0),v(0,1,0),v(0,0,1)
