@@ -265,9 +265,12 @@ class Mod3MeshCollection():
                 data.seek(pos+len(Mod3MeshPartHeader()))
         self.BoundingBoxes.marshall(data)
         BoundingBoxes = iter(self.BoundingBoxes)
-        for mesh in self.Meshes:            
-            for _ in range(mesh.Header.boundingBoxCount):
-                mesh.BoundingBoxes.append(next(BoundingBoxes))
+        try:
+            for mesh in self.Meshes:            
+                for _ in range(mesh.Header.boundingBoxCount):
+                    mesh.BoundingBoxes.append(next(BoundingBoxes))
+        except:
+            pass
         
     def serialize(self):
         meshes, vertices, faces = [],[],[]
