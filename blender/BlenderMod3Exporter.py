@@ -199,7 +199,8 @@ class BlenderExporterAPI(ModellingAPI):
     def listMeshes(options):
         return sorted([o for o in bpy.context.scene.objects 
                        if o.type=="MESH" and (options.exportHidden or not o.hide)
-                           and not("Type" in o.data and o.data["Type"]=="MOD3_VM_Mesh")]
+                           and not("Type" in o.data and o.data["Type"]=="MOD3_VM_Mesh")
+                           and len(o.data.vertices)]
                     ,key=lambda x: x.data.name)
     
     @staticmethod
@@ -234,7 +235,10 @@ class BlenderExporterAPI(ModellingAPI):
                     groups[255] = []
                 groups[255].append(vertex.co)
             for group in weightGroups:
-                name = groupName(group.group)
+                try:
+                    name = groupName(group.group)
+                except:
+                    continue
                 if name in groupToBone:
                     skeletonElement = skeletonMap[groupToBone[name]]
                     boneCoordinates = skeletonMap.getBoneByName(groupToBone[name]).matrix_world.inverted()
