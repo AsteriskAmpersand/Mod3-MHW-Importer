@@ -457,7 +457,7 @@ class BlenderImporterAPI(ModellingAPI):
         armature = context.armature
         for groupIx,group in mod3Mesh["weightGroups"].items():                       
             groupIndex = groupIx if isinstance(groupIx, int) else groupIx[0] 
-            if groupIndex in armature:
+            if armature and groupIndex in armature:
                 targetName = armature[groupIndex].name
                 tindex = int(targetName.split(".")[1])
                 groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
