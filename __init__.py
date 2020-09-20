@@ -13,7 +13,7 @@ bl_info = {
     "category": "Import-Export",
     "author": "AsteriskAmpersand (Code) & CrazyT (Structure)",
     "location": "File > Import-Export > Mod3/MHW",
-    "version": (2,0,0)
+    "version": (2,1,0)
 }
  
 import bpy
