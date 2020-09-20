@@ -200,8 +200,10 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.dbg.write("Clearing Scene\n")
         for key in list(bpy.context.scene.keys()):
             del bpy.context.scene[key]
-        bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.object.delete() 
+        for obj in bpy.data.objects:
+            bpy.data.objects.remove(obj)
+        #bpy.ops.object.select_all(action='SELECT')
+        #bpy.ops.object.delete() 
         for i in bpy.data.images.keys():
             bpy.data.images.remove(bpy.data.images[i])
         BlenderImporterAPI.dbg.write("Scene Cleared\n")
@@ -438,6 +440,8 @@ class BlenderImporterAPI(ModellingAPI):
         miniscene[obj.index] = obj
         bone.head = Vector([0, 0, 0])
         bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])#Vector([0, 1, 0])
+        #for prop in obj.keys():
+        #    bone[prop] = obj[prop]
         if not parent_bone:
             parent_bone = BlenderImporterAPI.DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
         bone.matrix = parent_bone.matrix * obj.lmatrix

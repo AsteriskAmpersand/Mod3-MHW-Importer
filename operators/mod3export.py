@@ -76,6 +76,7 @@ class ExportMOD3(Operator, ExportHelper):
         exec("%s = %s"%(prop, propString))
 
     def execute(self,context):
+        self.cleanScene(context)
         BApi = Api.BlenderExporterAPI()
         with SupressBlenderOps():
             try:
@@ -98,7 +99,14 @@ class ExportMOD3(Operator, ExportHelper):
         #bpy.ops.object.mode_set(mode='OBJECT')
         #bpy.context.area.type = 'INFO'
         return {'FINISHED'}
-    
+
+    @staticmethod
+    def cleanScene(context):
+        data = set(bpy.data.objects)
+        scene = set(bpy.context.scene.objects)
+        for obj in data.difference(scene):
+            bpy.data.objects.remove(obj)    
+
     def parseOptions(self):
         options = {
                 "lod":self.highest_lod,

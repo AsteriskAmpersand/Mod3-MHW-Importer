@@ -511,7 +511,8 @@ class BlenderExporterAPI(ModellingAPI):
             colorLayer = mesh.data.vertex_colors[0].data
         vertColor = {}
         for loop, colorLoop in zip(mesh.data.loops, colorLayer):
-            color = list(map(int,colorLoop.color*255))+[255]
+            color = list(map(lambda x: int(x*255),colorLoop.color))
+            if len(color)<4:color+=[255]
             vertIndex = loop.vertex_index
             if vertIndex in vertColor and color != vertColor[vertIndex]:
                 errorHandler.duplicateColor(vertIndex, Vector(color), vertColor)
