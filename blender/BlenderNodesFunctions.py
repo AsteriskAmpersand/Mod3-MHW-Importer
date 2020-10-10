@@ -60,24 +60,39 @@ def principledSetup(nodeTree):
         nodeTree.links.new(specularNode.outputs[0],bsdfNode.inputs[5])
     rmtTern = yield
     if rmtTern:
-        roughness,splitter,subsurface = rmtTern
-        nodeTree.links.new(roughness.outputs[0],bsdfNode.inputs[7])
+        splitter,subsurface = rmtTern
+        nodeTree.links.new(splitter.outputs[0],bsdfNode.inputs[7])
         nodeTree.links.new(splitter.outputs[1],bsdfNode.inputs[4])
         translucencyNode = nodeTree.nodes.new(type="ShaderNodeBsdfTranslucent")
-        setLocation(translucencyNode,(10,3))
+        setLocation(translucencyNode,(6,6))
+        
         translucentMixerNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
         setLocation(translucentMixerNode,(12,0))
         
-        if diffuseNode:nodeTree.links.new(diffuseNode.outputs[0],translucencyNode.inputs[0])#color
-        if normalNode: nodeTree.links.new(normalNode.outputs[0],translucencyNode.inputs[1])#normal
+        activeNode = translucentMixerNode
+        
+        if diffuseNode:  
+            translucencyTransparentNode = nodeTree.nodes.new(type="ShaderNodeBsdfTransparent")
+            setLocation(translucencyTransparentNode,(6,8))    
+            translucencyTransparencyMixerNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
+            setLocation(translucencyTransparencyMixerNode,(10,3))
+            
+            nodeTree.links.new(diffuseNode.outputs[0],translucencyNode.inputs[0])#color  
+            nodeTree.links.new(diffuseNode.outputs[1],translucencyTransparencyMixerNode.inputs[0])#alpha to translucency
+            nodeTree.links.new(translucencyTransparentNode.outputs[0],translucencyTransparencyMixerNode.inputs[1])#transparent if 0
+            nodeTree.links.new(translucencyNode.outputs[0],translucencyTransparencyMixerNode.inputs[2])#Translucent Material if 1            
+                
+            activeNode = translucencyTransparencyMixerNode            
+        if normalNode: nodeTree.links.new(normalNode.outputs[0],translucencyNode.inputs[1])#normal        
+        
         
         nodeTree.links.new(splitter.outputs[2],translucentMixerNode.inputs[0])
-        nodeTree.links.new(translucencyNode.outputs[0],translucentMixerNode.inputs[1])
-        
-        #nodeTree.links.new(endNode.outputs[0],translucentMixerNode.inputs[2])
-        #nodeTree.links.new(subsurface.outputs[1],bsdfNode.inputs[1])
-        if diffuseNode: nodeTree.links.new(diffuseNode.outputs[1],bsdfNode.inputs[3])
-        #endNode = translucentMixerNode
+        nodeTree.links.new(endNode.outputs[0],translucentMixerNode.inputs[1])
+        nodeTree.links.new(activeNode.outputs[0],translucentMixerNode.inputs[2])
+                
+        nodeTree.links.new(subsurface.outputs[1],bsdfNode.inputs[1])
+        if diffuseNode: nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[3])
+        endNode = translucentMixerNode
         
     emissiveNode = yield
     if emissiveNode:
@@ -104,17 +119,26 @@ def normalSetup(nodeTree,texture,*args):
     #Create NormalMapData
     normalNode = createTexNode(nodeTree,"NONE",texture,"Normal Texture")
     setLocation(normalNode,(0,6))
-    #Create InvertNode
-    inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
-    inverterNode.name = "Normal Inverter"
-    setLocation(inverterNode,(2,6))
+    #Create SplitNode
+    splitNode = nodeTree.nodes.new(type="ShaderNodeSeparateRGB")
+    splitNode.name = "Normal Split"
+    setLocation(splitNode,(2,6))
+    #Create Recombine
+    joinNode = nodeTree.nodes.new(type="ShaderNodeCombineRGB")
+    joinNode.name = "Normal Combine"
+    joinNode.inputs[2].default_value = 1.0
+    setLocation(joinNode,(3,8))
     #Create NormalMapNode
     normalmapNode = nodeTree.nodes.new(type="ShaderNodeNormalMap")
     normalmapNode.name = "Normal Map"
     setLocation(normalmapNode,(4,6))
     #Plug Normal Data to Node (color -> color)
-    nodeTree.links.new(normalNode.outputs[0],inverterNode.inputs[1])
-    nodeTree.links.new(inverterNode.outputs[0],normalmapNode.inputs[1])
+    nodeTree.links.new(normalNode.outputs[0],splitNode.inputs[0])
+    
+    nodeTree.links.new(splitNode.outputs[0],joinNode.inputs[0])
+    nodeTree.links.new(splitNode.outputs[1],joinNode.inputs[1])
+    
+    nodeTree.links.new(joinNode.outputs[0],normalmapNode.inputs[1])
     return normalmapNode
     
 def specularSetup(nodeTree,texture,*args):
@@ -150,22 +174,15 @@ def emissionSetup(nodeTree,texture,*args):
 #setup scheme from https://i.stack.imgur.com/TdK1W.png + https://i.stack.imgur.com/40vbG.jpg
 def rmtSetup(nodeTree,texture,*args):
     #Create RMTMap
-    rmtNode = createTexNode(nodeTree,"COLOR",texture,"RMT Texture")
+    rmtNode = createTexNode(nodeTree,"NONE",texture,"RMT Texture")
     setLocation(rmtNode,(0,3))
     #Create Separate RGB
     splitterNode = nodeTree.nodes.new(type="ShaderNodeSeparateRGB")
     splitterNode.name = "RMT Splitter"
     setLocation(splitterNode,(2,1))
-    #Create Metallicness
-    #Create Roughness - Create InvertNode
-    inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
-    inverterNode.name = "Roughness Inverter"
-    setLocation(inverterNode,(4,2))
     #Tex To Splitter
     nodeTree.links.new(rmtNode.outputs[0],splitterNode.inputs[0])
-    #Splitter to Inverter
-    nodeTree.links.new(splitterNode.outputs[0],inverterNode.inputs[0])
-    return inverterNode,splitterNode,rmtNode
+    return splitterNode,rmtNode
 
 def furSetup(nodeTree,texture,*args):
     #TODO - Actually Finish This 
