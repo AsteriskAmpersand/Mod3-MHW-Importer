@@ -59,6 +59,10 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import Materials.",
         description = "Imports maps as materials as specified by mrl3.",
         default = False)
+    load_empty = BoolProperty(
+        name = "Load Unused Weights.",
+        description = "Imports weights not in any Bounding Box.",
+        default = False)
     load_group_functions = BoolProperty(
         name = "Load Bounding Boxes.",
         description = "Loads the mod3 as bounding boxes.",
@@ -122,6 +126,8 @@ class ImportMOD3(Operator, ImportHelper):
             options["Import Textures"]=self.texture_path
         if self.import_materials:
             options["Import Materials"]=self.texture_path
+        if self.load_empty:
+            options["Load Unused Groups"]=True
         if self.load_group_functions:
             options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format

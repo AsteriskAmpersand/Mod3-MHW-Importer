@@ -66,6 +66,7 @@ class Mod3ToModel():
         if "Load Groups and Functions" in options and "Mesh Parts" in options:
             execute.append(lambda c: self.loadGroupsFunctions(c))
         self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
+        self.loadEmpty = "Load Unused Groups" in options
         return execute
     
     def loadGroupsFunctions(self,c):
@@ -87,7 +88,7 @@ class Mod3ToModel():
         self.api.createArmature(self.model.prepareArmature(),c)
         
     def createMeshParts(self,c):
-        self.api.createMeshParts(self.model.prepareMeshparts(self.splitWeights),c)
+        self.api.createMeshParts(self.model.prepareMeshparts(self.splitWeights),self.loadEmpty,c)
         
     def clearScene(self,c):
         self.api.clearScene(c)

@@ -92,7 +92,7 @@ class SkeletonMap():
     def getBoneByName(self,key):
         return self.boneNamesToBoneObject[key]
     def getBoneByIndex(self,key):
-        return self.boneIndexToBone[cix]
+        return self.boneIndexToBone[key]
     def __bool__(self):
         return bool(self.boneNamesToindices)
     

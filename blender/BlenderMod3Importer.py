@@ -117,7 +117,7 @@ class BlenderImporterAPI(ModellingAPI):
         return
     
     @staticmethod
-    def createMeshParts(meshPartList, context):
+    def createMeshParts(meshPartList, loadEmpty, context):
         meshObjects = []
         boundingBoxes = []
         filename = processPath(context.path)
@@ -133,7 +133,7 @@ class BlenderImporterAPI(ModellingAPI):
             BlenderImporterAPI.dbg.write("\tBasic Face Count %d\n"%len(meshpart["faces"]))
             #Weight Handling
             BlenderImporterAPI.dbg.write("\tLoading Weights\n")
-            BlenderImporterAPI.writeWeights(blenderObject, meshpart, context)
+            BlenderImporterAPI.writeWeights(blenderObject, meshpart, loadEmpty, context)
             #Normals Handling
             BlenderImporterAPI.dbg.write("\tLoading Normals\n")
             BlenderImporterAPI.setNormals(meshpart["normals"],blenderMesh)
@@ -457,21 +457,28 @@ class BlenderImporterAPI(ModellingAPI):
         return matrix
     
     @staticmethod
-    def writeWeights(blenderObject, mod3Mesh, context):
+    def writeWeights(blenderObject, mod3Mesh, loadEmpty, context):
         armature = context.armature
+        boundGroups = set((box.bone() for box in mod3Mesh["boundingBoxes"]))
+        BlenderImporterAPI.dbg.write("\t\t\tGroups: %s\n"%(list(boundGroups)))
         for groupIx,group in mod3Mesh["weightGroups"].items():                       
             groupIndex = groupIx if isinstance(groupIx, int) else groupIx[0] 
-            if armature and groupIndex in armature:
-                targetName = armature[groupIndex].name
-                tindex = int(targetName.split(".")[1])
-                groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
-            else:
-                groupId = str(groupIx)
-            groupName = "Bone.%s"%groupId
-            for vertex,weight in group:
-                if groupName not in blenderObject.vertex_groups:
-                    blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
-                blenderObject.vertex_groups[groupName].add([vertex], weight, 'ADD')
+            #BlenderImporterAPI.dbg.write("\t\t\t%s\n"%(str(groupIndex)))
+            #groupIndex is assured to be an int, which allows us to check against the bounding box values
+            if groupIndex not in boundGroups:
+                BlenderImporterAPI.dbg.write("\t\t\tGroup not in Bounding Boxes: %s\n"%(str(groupIndex)))
+            if groupIndex in boundGroups or loadEmpty:
+                if armature and groupIndex in armature:
+                    targetName = armature[groupIndex].name
+                    tindex = int(targetName.split(".")[1])
+                    groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
+                else:
+                    groupId = str(groupIx)
+                groupName = "Bone.%s"%groupId
+                for vertex,weight in group:
+                    if groupName not in blenderObject.vertex_groups:
+                        blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
+                    blenderObject.vertex_groups[groupName].add([vertex], weight, 'ADD')
         return
     
     @staticmethod
