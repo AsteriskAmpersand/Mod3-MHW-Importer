@@ -145,6 +145,10 @@ class ErrorHandler():
                     "colour":(0,0,0,255)
                 }
     
+    def boneFunctionFailure(self, boneName, value):
+        self.Error = True
+        self.MessageList.append((self.meshname,"Error: Bone %s has string bone function %s. Try deanonymizing CTC bones before export."%(boneName,value)))
+    
     def verifyLoadLoop(self, field, customVert, blenderVert, loopArray, mesh):
         if blenderVert.index not in loopArray:
             self.__setattr__(self.loopLevel,True)

@@ -208,7 +208,7 @@ class BlenderExporterAPI(ModellingAPI):
         options.errorHandler.setSection("Meshes")
         options.errorHandler.attemptLoadDefaults(ModellingAPI.MeshDefaults, bpy.context.scene)
         meshlist = [BlenderExporterAPI.parseMesh(mesh,materials,boneNames,options) 
-                    for mesh in BlenderExporterAPI.listMeshes(options)]        
+                    for mesh in BlenderExporterAPI.listMeshes(options)]
         options.validateMaterials(materials)
         options.executeErrors()
         return meshlist, materials
@@ -242,10 +242,8 @@ class BlenderExporterAPI(ModellingAPI):
                 if name in groupToBone:
                     skeletonElement = skeletonMap[groupToBone[name]]
                     boneCoordinates = skeletonMap.getBoneByName(groupToBone[name]).matrix_world.inverted()
-                    groups[skeletonElement].append(boneCoordinates*vertex.co)
-        #print(mesh.name)
-        #print("|".join(("%d:%d"%(k,len(v)) for k,v in groups.items())))
-        return {k:i for k,i in groups.items() if len(i)>0}
+                    groups[skeletonElement].append((boneCoordinates*vertex.co).freeze())
+        return {k:set(i) for k,i in groups.items() if len(i)>0}
     
     @staticmethod
     def calculateAABB(verts):
@@ -344,13 +342,14 @@ class BlenderExporterAPI(ModellingAPI):
     def getRootEmpty():
         childless = []
         childed = []
+        hiddenExplicitRoot = []
         explicitRoot = []
-        rankings = {1:childless,2:childed,3:explicitRoot}
+        rankings = {1:childless,2:childed,3:hiddenExplicitRoot,4:explicitRoot}
         for o in bpy.context.scene.objects:
             hierarchy = BlenderExporterAPI.isCandidateRoot(o)
             if hierarchy:
                 rankings[hierarchy].append(o)
-        return explicitRoot if explicitRoot else childed if childed else childless
+        return explicitRoot if explicitRoot else hiddenExplicitRoot if hiddenExplicitRoot else childed if childed else childless
     
     @staticmethod
     def isCandidateRoot(rootCandidate):
@@ -358,7 +357,9 @@ class BlenderExporterAPI(ModellingAPI):
             return 0
         if "Type" in rootCandidate:
             if rootCandidate["Type"] == "MOD3_SkeletonRoot":
-                return 3
+                if rootCandidate.hide:
+                    return 3
+                return 4
             else:
                 return 0        
         if "boneFunction" in rootCandidate:
@@ -382,11 +383,19 @@ class BlenderExporterAPI(ModellingAPI):
         return
     
     @staticmethod
+    def verifyBone(bone,errorHandler):        
+        if "boneFunction" in bone:
+            if type(bone["boneFunction"]) is not int:
+                errorHandler.boneFunctionFailure(bone["name"],bone["boneFunction"])
+                bone["boneFunction"] = errorHandler.propertyMissing("boneFunction")
+    
+    @staticmethod
     def recursiveEmptyDeconstruct(pix, current, storage, skeletonMap, errorHandler):
         for child in current.children:
             bone = {"name":child.name}
             for prop in ["boneFunction","unkn2"]:
                 BlenderExporterAPI.verifyLoad(child, prop, errorHandler, bone)
+            BlenderExporterAPI.verifyBone(bone,errorHandler)
             #Check Child Constraint
             bone["child"] = BlenderExporterAPI.getTarget(child, errorHandler)
             LMatrix= child.matrix_local.copy()
@@ -403,7 +412,6 @@ class BlenderExporterAPI(ModellingAPI):
     def getTarget(bone, errorHandler):
         return None if not (hasattr(bone,"MHW_Symmetric_Pair") and bone.MHW_Symmetric_Pair) else bone.MHW_Symmetric_Pair.name
         
-    
     @staticmethod
     def parseMesh(basemesh, materials, skeletonMap, options):
         options.errorHandler.setMeshName(basemesh.name)
@@ -416,7 +424,7 @@ class BlenderExporterAPI(ModellingAPI):
                         "material"]:
                 BlenderExporterAPI.verifyLoad(mesh.data, prop, options.errorHandler, meshProp)
             meshProp["blocktype"] = BlenderExporterAPI.invertBlockLabel(meshProp["blockLabel"], options.errorHandler)
-            groupName = lambda x: mesh.vertex_groups[x].name
+            groupName = lambda x: mesh.vertex_groups[x].name            
             loopNormals, loopTangents = BlenderExporterAPI.loopValues(mesh.data, options.splitNormals, options.errorHandler)
             uvMaps = BlenderExporterAPI.uvValues(mesh.data, options.errorHandler)
             colour = BlenderExporterAPI.colourValues(mesh, options.errorHandler)
@@ -434,7 +442,7 @@ class BlenderExporterAPI(ModellingAPI):
                 #UV Handling
                 vert["uvs"] = [uvMap[vertex.index] if vertex.index in uvMap else options.errorHandler.missingUV(vertex.index, uvMap) for uvMap in uvMaps]
                 if not len(vert["uvs"]):
-                    options.errorHandler.uvLayersMissing(vert)            
+                    options.errorHandler.uvLayersMissing(vert)
                 if len(vert["uvs"])>4:
                     options.errorHandler.uvCountExceeded(vert)
                 #Colour Handling if present
@@ -449,7 +457,7 @@ class BlenderExporterAPI(ModellingAPI):
                     faces.append({v:vert for v,vert in zip(["v1","v2","v3"],face.vertices)})
             if len(faces)>4294967295:
                 options.errorHandler.faceCountOverflow()
-            meshProp["materialIdx"] = options.updateMaterials(meshProp,materials)
+            meshProp["materialIdx"] = options.updateMaterials(meshProp,materials) 
             if options.calculateBoundingBox:
                 boundingboxes = BlenderExporterAPI.calculateBoundingBoxes(mesh,options,skeletonMap)
             else:

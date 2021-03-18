@@ -88,10 +88,9 @@ class ExportMOD3(Operator, ExportHelper):
                 obj.select = obj.type == "MESH"
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             bpy.ops.object.select_all(action='DESELECT')
-            
+
         options = self.parseOptions()
         Mod3EL.ModelToMod3(BApi, options).execute(self.properties.filepath)
-        
         with SupressBlenderOps():
             bpy.ops.object.select_all(action='DESELECT')
             for ob in bpy.context.selected_objects:
