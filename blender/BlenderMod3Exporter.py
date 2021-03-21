@@ -233,7 +233,7 @@ class BlenderExporterAPI(ModellingAPI):
             if not len(weightGroups):
                 if 255 not in groups:
                     groups[255] = []
-                groups[255].append(vertex.co)
+                groups[255].append(Vector(vertex.co).freeze())
             for group in weightGroups:
                 try:
                     name = groupName(group.group)
@@ -243,7 +243,7 @@ class BlenderExporterAPI(ModellingAPI):
                     skeletonElement = skeletonMap[groupToBone[name]]
                     boneCoordinates = skeletonMap.getBoneByName(groupToBone[name]).matrix_world.inverted()
                     groups[skeletonElement].append((boneCoordinates*vertex.co).freeze())
-        return {k:set(i) for k,i in groups.items() if len(i)>0}
+        return {k:list(set(i)) for k,i in groups.items() if len(i)>0}
     
     @staticmethod
     def calculateAABB(verts):
