@@ -200,6 +200,7 @@ class BlenderExporterAPI(ModellingAPI):
         return sorted([o for o in bpy.context.scene.objects 
                        if o.type=="MESH" and (options.exportHidden or not o.hide)
                            and not("Type" in o.data and o.data["Type"]=="MOD3_VM_Mesh")
+                           and not("Type" in o.data and o.data["Type"]=="MHW_Ctrl_Structure")
                            and len(o.data.vertices)]
                     ,key=lambda x: x.data.name)
     
