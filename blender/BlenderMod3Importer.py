@@ -51,7 +51,7 @@ class BonePoint():
     def __init__(self, ix, bone):
         self.properties = bone["CustomProperties"]
         self.index = ix
-        self.name = "Bone.%03d"%ix
+        self.name = "BoneFunction.%03d"%bone["CustomProperties"]["boneFunction"]#%ix
         self.lmatrix = BlenderImporterAPI.deserializeMatrix("LMatCol",bone)
         self.pos = Vector((bone["x"],bone["y"],bone["z"]))
         self.children = []
@@ -404,7 +404,9 @@ class BlenderImporterAPI(ModellingAPI):
     
     @staticmethod
     def createNub(ix, bone, armature, miniscene):
-        o = bpy.data.objects.new("Bone.%03d"%ix, None )
+        #raise ValueError(bone.keys())
+        #o = bpy.data.objects.new("Bone.%03d"%ix, None )
+        o = bpy.data.objects.new("BoneFunction.%03d"%bone["CustomProperties"]["boneFunction"], None )#ix
         miniscene[ix]=o
         bpy.context.scene.objects.link( o )
         #if bone["parentId"]!=255:
@@ -474,7 +476,7 @@ class BlenderImporterAPI(ModellingAPI):
                     groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
                 else:
                     groupId = str(groupIx)
-                groupName = "Bone.%s"%groupId
+                groupName = "BoneFunction.%s"%groupId
                 for vertex,weight in group:
                     if groupName not in blenderObject.vertex_groups:
                         blenderObject.vertex_groups.new(groupName)#blenderObject Maybe?
