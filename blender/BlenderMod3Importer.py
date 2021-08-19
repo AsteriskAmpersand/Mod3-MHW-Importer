@@ -7,6 +7,7 @@ Created on Sun Mar 31 03:11:30 2019
 
 import bpy
 import bmesh
+import idprop
 import array
 import os
 from mathutils import Vector, Matrix
@@ -194,12 +195,14 @@ class BlenderImporterAPI(ModellingAPI):
                 for mesh in context.meshes:
                     modifier = mesh.modifiers.new(name = "Animation Armature", type='ARMATURE')
                     modifier.object = context.skeleton
+                    mesh.parent = context.skeleton
         
     @staticmethod
     def clearScene(context):
         BlenderImporterAPI.dbg.write("Clearing Scene\n")
         for key in list(bpy.context.scene.keys()):
-            del bpy.context.scene[key]
+            if type(bpy.context.scene[key]) != idprop.types.IDPropertyGroup:
+                del bpy.context.scene[key]
         for obj in bpy.data.objects:
             bpy.data.objects.remove(obj)
         #bpy.ops.object.select_all(action='SELECT')
@@ -394,7 +397,7 @@ class BlenderImporterAPI(ModellingAPI):
     
     @staticmethod
     def createRootNub(miniscene):
-        o = bpy.data.objects.new("Bone.%03d"%255, None )
+        o = bpy.data.objects.new("Root", None )
         miniscene[255]=o
         bpy.context.scene.objects.link( o )
         o.show_wire = True
@@ -430,7 +433,8 @@ class BlenderImporterAPI(ModellingAPI):
             
     @staticmethod
     def createParentBone(armature):
-        bone = armature.edit_bones.new("Bone.255")
+        bone = armature.edit_bones.new("Root")
+        bone["boneFunction"] = -1
         bone.head = Vector([0, 0, 0])
         bone.tail = Vector([0, BlenderImporterAPI.MACHINE_EPSILON, 0])
         bone.matrix = Matrix.Identity(4)        

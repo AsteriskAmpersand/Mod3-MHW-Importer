@@ -172,18 +172,36 @@ if __name__ in "__main__":
     import FileLike as FL
     from pathlib import Path
     
-    chunkpath = Path(r"E:\MHW\chunkG0")
+    chunkpath = Path(r"E:\MHW\chunk")
     values = set()
     #with open(r"G:\Wisdom\modelData.txt","w") as outf:
     #    def print(*args):
     #        x: outf.write(''.join(map(str,args))+'\n')
     unkn1 = [set() for i in range(64)]
+    unkn3 = {}
+    intUnkn = {}
+    
     for modelf in chunkpath.rglob("*.mod3"):
+        printf = False
         #modelf = Path(r"E:\MHW\chunkG0\accessory\askill\askill001\mod\common\askill_mantle001.mod3")
         modelfile = FL.FileLike(modelf.open("rb").read())
         model = Mod3()
         model.marshall(modelfile)
-                
+        for model in model.MeshParts:
+            if model.Header.unkn3 not in unkn3:
+                unkn3[model.Header.unkn3] = set()
+            unkn3[model.Header.unkn3].add(modelf)
+            
+            if model.Header.intUnknown not in intUnkn:
+                intUnkn[model.Header.intUnknown] = set()            
+            intUnkn[model.Header.intUnknown].add(modelf)           
+            if model.Header.intUnknown == 131:
+                printf = True
+        if printf:
+                print(modelf)
+        continue
+        
+        
         modelfile = FL.FileLike(modelf.open("rb").read())
         model2 = Mod3()
         model2.marshall(modelfile)
@@ -196,4 +214,7 @@ if __name__ in "__main__":
                 if p0 != p1:
                     print("%s %d: %d - %d"%(p,mi,p0,p1))
                     raise ValueError(modelf)
+                    
         #raise
+    print(unkn3)
+    print(intUnkn)
