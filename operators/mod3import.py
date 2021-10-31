@@ -59,9 +59,13 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Import Materials.",
         description = "Imports maps as materials as specified by mrl3.",
         default = False)
-    load_empty = BoolProperty(
-        name = "Load Unused Weights.",
-        description = "Imports weights not in any Bounding Box.",
+    omit_empty = BoolProperty(
+        name = "Omit Unused Weights.",
+        description = "Omit weights not in any Bounding Box.",
+        default = False)
+    preserve_ordering = BoolProperty(
+        name = "Preserve Bone Ordering.",
+        description = "Preserve Bone Order Explicitly.",
         default = False)
     load_group_functions = BoolProperty(
         name = "Load Bounding Boxes.",
@@ -126,8 +130,10 @@ class ImportMOD3(Operator, ImportHelper):
             options["Import Textures"]=self.texture_path
         if self.import_materials:
             options["Import Materials"]=self.texture_path
-        if self.load_empty:
-            options["Load Unused Groups"]=True
+        if self.omit_empty:
+            options["Omit Unused Groups"]=True
+        if self.preserve_ordering:
+            options["Preserve Ordering"]=True
         if self.load_group_functions:
             options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format

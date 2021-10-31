@@ -76,12 +76,12 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.parseProperties(meshProperties,bpy.context.scene.__setitem__)
       
     @staticmethod
-    def createEmptyTree(armature, context):
+    def createEmptyTree(armature, preserveOrdering, context):
         miniscene = OrderedDict()
         BlenderImporterAPI.createRootNub(miniscene)
         for ix, bone in enumerate(armature):
             if ix not in miniscene:
-                BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
+                BlenderImporterAPI.createNub(ix, bone, armature, miniscene, preserveOrdering)
         miniscene[255].name = '%s Armature'%processPath(context.path)
         miniscene[255]["Type"] = "MOD3_SkeletonRoot"
         BlenderImporterAPI.linkChildren(miniscene)
@@ -118,7 +118,7 @@ class BlenderImporterAPI(ModellingAPI):
         return
     
     @staticmethod
-    def createMeshParts(meshPartList, loadEmpty, context):
+    def createMeshParts(meshPartList, omitEmpty, context):
         meshObjects = []
         boundingBoxes = []
         filename = processPath(context.path)
@@ -134,7 +134,7 @@ class BlenderImporterAPI(ModellingAPI):
             BlenderImporterAPI.dbg.write("\tBasic Face Count %d\n"%len(meshpart["faces"]))
             #Weight Handling
             BlenderImporterAPI.dbg.write("\tLoading Weights\n")
-            BlenderImporterAPI.writeWeights(blenderObject, meshpart, loadEmpty, context)
+            BlenderImporterAPI.writeWeights(blenderObject, meshpart, omitEmpty, context)
             #Normals Handling
             BlenderImporterAPI.dbg.write("\tLoading Normals\n")
             BlenderImporterAPI.setNormals(meshpart["normals"],blenderMesh)
@@ -406,7 +406,7 @@ class BlenderImporterAPI(ModellingAPI):
         
     
     @staticmethod
-    def createNub(ix, bone, armature, miniscene):
+    def createNub(ix, bone, armature, miniscene, preserveOrdering):
         #raise ValueError(bone.keys())
         #o = bpy.data.objects.new("Bone.%03d"%ix, None )
         o = bpy.data.objects.new("BoneFunction.%03d"%bone["CustomProperties"]["boneFunction"], None )#ix
@@ -423,6 +423,7 @@ class BlenderImporterAPI(ModellingAPI):
         o.show_x_ray = True
         o.show_bounds = True
         BlenderImporterAPI.parseProperties(bone["CustomProperties"],o.__setitem__)
+        o["indexHint"] = ix if preserveOrdering else -1
     
     class DummyBone():
         def __init__(self):
@@ -463,7 +464,7 @@ class BlenderImporterAPI(ModellingAPI):
         return matrix
     
     @staticmethod
-    def writeWeights(blenderObject, mod3Mesh, loadEmpty, context):
+    def writeWeights(blenderObject, mod3Mesh, omitEmpty, context):
         armature = context.armature
         boundGroups = set((box.bone() for box in mod3Mesh["boundingBoxes"]))
         BlenderImporterAPI.dbg.write("\t\t\tGroups: %s\n"%(list(boundGroups)))
@@ -473,7 +474,7 @@ class BlenderImporterAPI(ModellingAPI):
             #groupIndex is assured to be an int, which allows us to check against the bounding box values
             if groupIndex not in boundGroups:
                 BlenderImporterAPI.dbg.write("\t\t\tGroup not in Bounding Boxes: %s\n"%(str(groupIndex)))
-            if groupIndex in boundGroups or loadEmpty:
+            if groupIndex in boundGroups or not omitEmpty:
                 if armature and groupIndex in armature:
                     targetName = armature[groupIndex].name
                     tindex = int(targetName.split(".")[1])

@@ -188,7 +188,8 @@ class BlenderExporterAPI(ModellingAPI):
         root = options.validateSkeletonRoot(rootEmpty)
         protoskeleton = []
         BlenderExporterAPI.recursiveEmptyDeconstruct(255, root, protoskeleton, skeletonMap, options.errorHandler)
-        for bone in protoskeleton: bone["bone"]["child"] = skeletonMap[bone["bone"]["child"]] if bone["bone"]["child"] in skeletonMap else 255
+        for bone in protoskeleton:
+            bone["bone"]["child"] = skeletonMap[bone["bone"]["child"]] if bone["bone"]["child"] in skeletonMap else 255
         options.executeErrors()
         return [bone["bone"] for bone in protoskeleton], \
                 [bone["LMatrix"] for bone in protoskeleton], \
@@ -391,8 +392,16 @@ class BlenderExporterAPI(ModellingAPI):
                 bone["boneFunction"] = errorHandler.propertyMissing("boneFunction")
     
     @staticmethod
+    def hintCalc(child):
+        if "indexHint" in child:
+            hint = child["indexHint"] if child["indexHint"]>= 0 else 1024  
+        else:
+            hint = 1024
+        return hint
+    
+    @staticmethod
     def recursiveEmptyDeconstruct(pix, current, storage, skeletonMap, errorHandler):
-        for child in current.children:
+        for child in sorted(current.children,key = BlenderExporterAPI.hintCalc):
             bone = {"name":child.name}
             for prop in ["boneFunction","unkn2"]:
                 BlenderExporterAPI.verifyLoad(child, prop, errorHandler, bone)

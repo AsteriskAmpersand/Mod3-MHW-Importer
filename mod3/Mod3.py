@@ -165,14 +165,24 @@ def doublesidedEval(v1, v2):
     if v1 != v2:
         print(v1)
         print(v2)
-        raise ValueError()
-        
+        raise ValueError()        
+
 if __name__ in "__main__":
+    from mathutils import Matrix
+    def worldMatrix(bone,lmat,lmats,skeleton):
+        if bone.parentId == 255:
+            bone.world = Matrix(lmat.matrix).transposed()
+            return bone.world
+        if not hasattr(skeleton[bone.parentId],"world"):
+            worldMatrix(skeleton[bone.parentId],lmats[bone.parentId],lmats,skeleton)
+        bone.world =  skeleton[bone.parentId].world @ Matrix(lmat.matrix).transposed()
+        return bone.world
+        
     sys.path.insert(0, r'..\common')
     import FileLike as FL
     from pathlib import Path
     
-    chunkpath = Path(r"E:\MHW\chunk")
+    chunkpath = Path(r"D:\Games SSD\MHW\chunk\em")
     values = set()
     #with open(r"G:\Wisdom\modelData.txt","w") as outf:
     #    def print(*args):
@@ -182,39 +192,35 @@ if __name__ in "__main__":
     intUnkn = {}
     
     for modelf in chunkpath.rglob("*.mod3"):
+        if "tail" in str(modelf) or "horn" in str(modelf):
+            continue
         printf = False
-        #modelf = Path(r"E:\MHW\chunkG0\accessory\askill\askill001\mod\common\askill_mantle001.mod3")
-        modelfile = FL.FileLike(modelf.open("rb").read())
-        model = Mod3()
-        model.marshall(modelfile)
-        for model in model.MeshParts:
-            if model.Header.unkn3 not in unkn3:
-                unkn3[model.Header.unkn3] = set()
-            unkn3[model.Header.unkn3].add(modelf)
-            
-            if model.Header.intUnknown not in intUnkn:
-                intUnkn[model.Header.intUnknown] = set()            
-            intUnkn[model.Header.intUnknown].add(modelf)           
-            if model.Header.intUnknown == 131:
-                printf = True
-        if printf:
-                print(modelf)
-        continue
-        
-        
-        modelfile = FL.FileLike(modelf.open("rb").read())
-        model2 = Mod3()
-        model2.marshall(modelfile)
-        model2.calculateCountsOffsets()
-        
-        for mi,(m0,m1) in enumerate(zip(model.MeshParts,model2.MeshParts)):
-            for p in Mod3M.Mod3MeshPartHeader.fields:
-                p0 = getattr(m0.Header,p)
-                p1 = getattr(m1.Header,p)
-                if p0 != p1:
-                    print("%s %d: %d - %d"%(p,mi,p0,p1))
-                    raise ValueError(modelf)
-                    
-        #raise
-    print(unkn3)
-    print(intUnkn)
+        try:
+            #modelf = Path(r"E:\MHW\chunkG0\accessory\askill\askill001\mod\common\askill_mantle001.mod3")
+            modelfile = FL.FileLike(modelf.open("rb").read())
+            model = Mod3()
+            model.marshall(modelfile)
+            deepest = -1
+            depth = 0
+            mat = None
+            for bone, lmat in zip(model.Skeleton.Skeleton, model.Skeleton.Matrices.LMatrices):
+                wmat = worldMatrix(bone,lmat,model.Skeleton.Matrices.LMatrices,model.Skeleton.Skeleton)
+                if wmat[2][3] < depth:
+                    deepest = bone
+                    depth = wmat[2][3]
+                    mat = wmat
+                    #print(wmat)
+                    #print(bone.boneFunction)
+            parent = deepest.parentId
+            chain = [deepest]
+            while parent != 255:
+                bone = model.Skeleton.Skeleton[parent]
+                chain.append(bone)
+                parent = bone.parentId
+            print(modelf)
+            print('->'.join(reversed(list((str(b.boneFunction) for b in chain)))))
+            print("Probable Spine",chain[max(min(len(chain)-1,round(len(chain)*2/3)),0)].boneFunction)
+            print("Probable Tail Center",chain[max(min(len(chain)-1,round(len(chain)*1/3)),0)].boneFunction)
+            #raise
+        except:
+            pass
