@@ -63,10 +63,6 @@ class ImportMOD3(Operator, ImportHelper):
         name = "Omit Unused Weights.",
         description = "Omit weights not in any Bounding Box.",
         default = False)
-    preserve_ordering = BoolProperty(
-        name = "Preserve Bone Ordering.",
-        description = "Preserve Bone Order Explicitly.",
-        default = False)
     load_group_functions = BoolProperty(
         name = "Load Bounding Boxes.",
         description = "Loads the mod3 as bounding boxes.",
@@ -132,8 +128,6 @@ class ImportMOD3(Operator, ImportHelper):
             options["Import Materials"]=self.texture_path
         if self.omit_empty:
             options["Omit Unused Groups"]=True
-        if self.preserve_ordering:
-            options["Preserve Ordering"]=True
         if self.load_group_functions:
             options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format

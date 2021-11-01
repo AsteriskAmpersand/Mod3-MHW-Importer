@@ -67,7 +67,6 @@ class Mod3ToModel():
             execute.append(lambda c: self.loadGroupsFunctions(c))
         self.splitWeights = {"Group":0, "Split":1, "Slash":2}[options["Split Weights"]]
         self.omitEmpty = "Omit Unused Groups" in options
-        self.preserveOrdering = "Preserve Ordering" in options
         return execute
     
     def loadGroupsFunctions(self,c):
@@ -83,7 +82,7 @@ class Mod3ToModel():
         self.api.setMeshProperties(self.model.meshProperties(),c)
     
     def createEmptyTree(self, c):
-        self.api.createEmptyTree(self.model.prepareArmature(),self.preserveOrdering,c)
+        self.api.createEmptyTree(self.model.prepareArmature(),c)
     
     def createArmature(self,c):
         self.api.createArmature(self.model.prepareArmature(),c)

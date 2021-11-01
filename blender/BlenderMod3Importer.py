@@ -76,12 +76,12 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.parseProperties(meshProperties,bpy.context.scene.__setitem__)
       
     @staticmethod
-    def createEmptyTree(armature, preserveOrdering, context):
+    def createEmptyTree(armature, context):
         miniscene = OrderedDict()
         BlenderImporterAPI.createRootNub(miniscene)
         for ix, bone in enumerate(armature):
             if ix not in miniscene:
-                BlenderImporterAPI.createNub(ix, bone, armature, miniscene, preserveOrdering)
+                BlenderImporterAPI.createNub(ix, bone, armature, miniscene)
         miniscene[255].name = '%s Armature'%processPath(context.path)
         miniscene[255]["Type"] = "MOD3_SkeletonRoot"
         BlenderImporterAPI.linkChildren(miniscene)
@@ -406,10 +406,14 @@ class BlenderImporterAPI(ModellingAPI):
         
     
     @staticmethod
-    def createNub(ix, bone, armature, miniscene, preserveOrdering):
+    def createNub(ix, bone, armature, miniscene):
         #raise ValueError(bone.keys())
         #o = bpy.data.objects.new("Bone.%03d"%ix, None )
-        o = bpy.data.objects.new("BoneFunction.%03d"%bone["CustomProperties"]["boneFunction"], None )#ix
+        #if preserveOrdering:
+        #    name = "Bone.%03d" % ix
+        #else:
+        name = "BoneFunction.%03d" % bone["CustomProperties"]["boneFunction"]
+        o = bpy.data.objects.new(name, None )#ix
         miniscene[ix]=o
         bpy.context.scene.objects.link( o )
         #if bone["parentId"]!=255:
@@ -423,7 +427,7 @@ class BlenderImporterAPI(ModellingAPI):
         o.show_x_ray = True
         o.show_bounds = True
         BlenderImporterAPI.parseProperties(bone["CustomProperties"],o.__setitem__)
-        o["indexHint"] = ix if preserveOrdering else -1
+        o["indexHint"] = ix# if preserveOrdering else -1
     
     class DummyBone():
         def __init__(self):
