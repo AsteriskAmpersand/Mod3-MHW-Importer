@@ -34,7 +34,7 @@ def register():
     
     bpy.utils.register_class(MHWSkeleton)
     bpy.utils.register_class(MHWSkeletonPanel)
-    bpy.types.Object.MHWSkeleton = bpy.props.PointerProperty(type=MHWSkeleton) 
+    #bpy.types.Object.MHWSkeleton = bpy.props.PointerProperty(type=MHWSkeleton) 
 
 def unregister():
     bpy.utils.unregister_class(ImportMOD3)
@@ -44,7 +44,7 @@ def unregister():
     bpy.types.INFO_MT_file_import.remove(mhw_model_menu_func_import)
     bpy.types.INFO_MT_file_export.remove(mhw_model_menu_func_export)
     
-    del bpy.types.Object.MHWSkeleton
+    #del bpy.types.Object.MHWSkeleton
     del bpy.types.Object.MHW_Symmetric_Pair
 
 if __name__ == "__main__":

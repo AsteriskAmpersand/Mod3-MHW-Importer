@@ -43,7 +43,7 @@ class MHWSkeletonPanel(bpy.types.Panel):
 #, type=bpy.types.Object, poll=poll_mhr_bone
 class MHWSkeleton(bpy.types.PropertyGroup):
     symmetricPair = bpy.props.PointerProperty(name = "Symmetric Pair")
-    boneFunction = bpy.props.PointerProperty(name = "Bone Function",default = -1)
-    indexHint = bpy.props.PointerProperty(name = "Sort Priority",default = -1)
+    boneFunction = bpy.props.IntProperty(name = "Bone Function",default = -1)
+    indexHint = bpy.props.IntProperty(name = "Sort Priority",default = -1)
     unkn2 = bpy.props.FloatProperty(name = "Envelope",default = 0)
     enabled = bpy.props.FloatProperty(name = "MHW Enabled",default = False)
