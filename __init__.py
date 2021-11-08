@@ -18,7 +18,7 @@ bl_info = {
  
 import bpy
 
-from .operators.mod3properties import MHWSkeleton,MHWSkeletonPanel,symmetricPair
+from .operators.mod3properties import symmetricPair
 from .operators.mod3import import ImportMOD3
 from .operators.mod3export import ExportMOD3
 from .operators.mod3import import menu_func_import as mhw_model_menu_func_import
@@ -29,19 +29,13 @@ def register():
     bpy.utils.register_class(ExportMOD3)    
     bpy.types.INFO_MT_file_import.append(mhw_model_menu_func_import)
     bpy.types.INFO_MT_file_export.append(mhw_model_menu_func_export)
-    
     bpy.types.Object.MHW_Symmetric_Pair = symmetricPair
     
-    #bpy.utils.register_class(MHWSkeleton)
-    #bpy.utils.register_class(MHWSkeletonPanel)
-    #bpy.types.Object.MHWSkeleton = bpy.props.PointerProperty(type=MHWSkeleton) 
 
 def unregister():
     del bpy.types.Object.MHW_Symmetric_Pair
     bpy.utils.unregister_class(ImportMOD3)
     bpy.utils.unregister_class(ExportMOD3)
-    #bpy.utils.unregister_class(MHWSkeletonPanel)
-    #bpy.utils.unregister_class(MHWSkeleton)
     bpy.types.INFO_MT_file_import.remove(mhw_model_menu_func_import)
     bpy.types.INFO_MT_file_export.remove(mhw_model_menu_func_export)
     
