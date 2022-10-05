@@ -7,7 +7,6 @@ Created on Wed Mar  6 13:38:47 2019
 #from .dbg import dbg_init
 #dbg_init()
 
-content=bytes("","UTF-8")
 bl_info = {
     "name": "MHW Mod3 Model Importer",
     "category": "Import-Export",

@@ -26,7 +26,7 @@ class ImportMOD3(Operator, ImportHelper):
     bl_idname = "custom_import.import_mhw_mod3"
     bl_label = "Load MHW MOD3 file (.mod3)"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
- 
+
     # ImportHelper mixin class uses this
     filename_ext = ".mod3"
     filter_glob = StringProperty(default="*.mod3", options={'HIDDEN'}, maxlen=255)
@@ -79,13 +79,14 @@ class ImportMOD3(Operator, ImportHelper):
                   ("EmptyTree","Empty Tree","Import the skeleton as a tree of empties",1),
                   ("Armature","Animation Armature","Import the skeleton as a blender armature",2),
                   ],
-        default = "EmptyTree") 
+        default = "EmptyTree")
     weight_format = EnumProperty(
         name = "Weight Format",
         description = "Preserves capcom scheme of having repeated weights and negative weights by having multiple weight groups for each bone.",
-        items = [("Group","Standard","Weights under the same bone are grouped",0),
-                  ("Split","Split Weight Notation","Mirrors the Mod3 separation of the same weight",1),
-                  ("Slash","Split-Slash Notation","As split weight but also conserves weight order",2),
+        items = [("Group","Standard","Weights under the same bone are grouped, negative weights are dropped",0),
+                 ("Signed","Signed","Weights under the same bone are grouped, negative weights are kept",1),
+                  ("Split","Split Weight Notation","Mirrors the Mod3 separation of the same weight",2),
+                  ("Slash","Split-Slash Notation","As split weight but also conserves weight order",3),
                   ],
         default = "Group")
 
@@ -100,12 +101,12 @@ class ImportMOD3(Operator, ImportHelper):
         options = self.parseOptions()
         blenderContext = Context(self.properties.filepath,{},None)
         with BlenderSupressor.SupressBlenderOps():
-            Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)   
+            Mod3IL.Mod3ToModel(Mod3File, BApi, options).execute(blenderContext)
             bpy.ops.object.select_all(action='DESELECT')
         #bpy.ops.object.mode_set(mode='OBJECT')
         #bpy.context.area.type = 'INFO'
         return {'FINISHED'}
-    
+
     def parseOptions(self):
         options = {}
         if self.clear_scene:
@@ -132,6 +133,6 @@ class ImportMOD3(Operator, ImportHelper):
             options["Load Groups and Functions"]=True
         options["Split Weights"]=self.weight_format
         return options
-    
+
 def menu_func_import(self, context):
     self.layout.operator(ImportMOD3.bl_idname, text="MHW MOD3 (.mod3)")
