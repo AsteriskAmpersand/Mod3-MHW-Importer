@@ -6,7 +6,7 @@ Created on Mon Feb 25 00:21:26 2019
 """
 class debugger():
     def __init__(self, 
-                 path = r"C:\Users\AsteriskAmpersand\AppData\Roaming\Blender Foundation\Blender\2.79\scripts\addons\Mod3-MHW-Importer\dbg.txt",
+                 path = r"C:\Users\Asterisk\AppData\Roaming\Blender Foundation\Blender\2.79\scripts\addons\Mod3-MHW-Importer\dbg.txt",
                  debug = True):
         self.debug = debug
         if self.debug:

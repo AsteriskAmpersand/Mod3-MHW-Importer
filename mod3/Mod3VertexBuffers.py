@@ -133,7 +133,7 @@ class Mod3VertexWeightExtended(CS.PyCStruct):
         super().marshall(data)
         self.weights = Mod3VertexWeightBase.weightFromBytes(Mod3VertexWeightBase.tenBitWeightSplit(self.tenBitWeight))
         self.weights += Mod3VertexWeightExtended.weightFromBytes(self.byteWeights)
-        self.weights.append(1.0-sum(self.byteWeights))
+        self.weights.append(1.0-sum(self.weights))
         self.bits = self.tenBitWeight>>30
         
     def construct(self, weightList):

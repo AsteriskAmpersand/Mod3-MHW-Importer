@@ -168,6 +168,14 @@ def doublesidedEval(v1, v2):
         raise ValueError()        
 
 if __name__ in "__main__":
+    import FileLike as FL
+    from pathlib import Path
+    modelf = Path(r'C:/Users/Asterisk/Downloads/f_body105_0000.mod3')
+    modelfile = FL.FileLike(modelf.open("rb").read())
+    model = Mod3()
+    model.marshall(modelfile)
+    model.MeshParts.traditionalMeshStructure()
+    raise
     from mathutils import Matrix
     def worldMatrix(bone,lmat,lmats,skeleton):
         if bone.parentId == 255:
@@ -179,8 +187,6 @@ if __name__ in "__main__":
         return bone.world
         
     sys.path.insert(0, r'..\common')
-    import FileLike as FL
-    from pathlib import Path
     
     chunkpath = Path(r"D:\Games SSD\MHW\chunk\em")
     values = set()

@@ -93,16 +93,26 @@ class Mod3Mesh():
     def marshall(self, data):
         self.Header.marshall(data)
         position = data.tell()
+        self.Faces = [Mod3Face() for _ in range(self.Header.faceCount//3)]
+        data.seek(self.faceOffset+self.Header.faceOffset*2)
+        adj = 0
+        vsub = self.Header.vertexSub
+        for face in self.Faces:
+            face.marshall(data)
+            vix = min(face.v1,face.v2,face.v3)
+            if  vix < vsub:
+                nadj = vsub - vix
+                if nadj > adj:
+                    adj = nadj
+        if adj:
+            for face in self.Faces:
+                face.adjust(adj)
         data.seek((self.vertexOffset+self.Header.vertexOffset) +
-                  (self.Header.blockSize*(self.Header.vertexSub+self.Header.vertexBase)))
+                  (self.Header.blockSize*(self.Header.vertexSub+self.Header.vertexBase-adj)))
         self.Vertices = [Mod3Vertex(self.Header.blocktype)
                          for _ in range(self.Header.vertexCount)]
         for vert in self.Vertices:
             vert.marshall(data)
-        self.Faces = [Mod3Face() for _ in range(self.Header.faceCount//3)]
-        data.seek(self.faceOffset+self.Header.faceOffset*2)
-        for face in self.Faces:
-            face.marshall(data)
         data.seek(position)
 
     #{"mesh":pymesh, "faces":faces, "properties":meshProp, "meshname":mesh.name}
