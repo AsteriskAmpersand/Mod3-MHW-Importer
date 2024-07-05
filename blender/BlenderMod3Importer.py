@@ -343,8 +343,6 @@ class BlenderImporterAPI(ModellingAPI):
         BlenderImporterAPI.dbg.write("\t\t\t\tGeometry From Pydata\n")
         BlenderImporterAPI.dbg.write("\t\t\t\tVertex Count: %d\n"%len(meshpart['vertices']))
         BlenderImporterAPI.dbg.write("\t\t\t\tFaces %d %d\n"%(min(map(lambda x: min(x,default=0),meshpart["faces"]),default=0), max(map(lambda x: max(x,default=0),meshpart["faces"]),default=0)))
-        if max(map(lambda x: max(x,default=0),meshpart["faces"]),default=0) > len(meshpart["vertices"]):
-            meshpart["faces"] = [f for f in meshpart["faces"] if max(f) < len(meshpart["vertices"]) ]
         blenderMesh.from_pydata(meshpart["vertices"],[],meshpart["faces"])
         BlenderImporterAPI.dbg.write("\t\t\t\tPydata Loaded\n")
         blenderMesh.update()
