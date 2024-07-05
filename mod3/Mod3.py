@@ -170,7 +170,7 @@ def doublesidedEval(v1, v2):
 if __name__ in "__main__":
     import FileLike as FL
     from pathlib import Path
-    modelf = Path(r'C:/Users/Asterisk/Downloads/f_body105_0000.mod3')
+    modelf = Path(r'C:\Users\Asterisk\Downloads\f_leg040_0010.mod3')
     modelfile = FL.FileLike(modelf.open("rb").read())
     model = Mod3()
     model.marshall(modelfile)

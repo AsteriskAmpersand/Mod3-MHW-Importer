@@ -128,20 +128,20 @@ class BlenderImporterAPI(ModellingAPI):
         for ix, meshpart in enumerate(meshPartList):
             BlenderImporterAPI.dbg.write("\tLoading Meshpart %d\n"%ix)
             #Geometry
-            BlenderImporterAPI.dbg.write("\tLoading Geometry\n")
+            BlenderImporterAPI.dbg.write("\t\tLoading Geometry\n")
             blenderMesh, blenderObject = BlenderImporterAPI.createMesh("%s %03d"%(filename,ix),meshpart)
             BlenderImporterAPI.parseProperties(meshpart["properties"], blenderMesh.__setitem__)
-            BlenderImporterAPI.dbg.write("\tBasic Face Count %d\n"%len(meshpart["faces"]))
+            BlenderImporterAPI.dbg.write("\t\tBasic Face Count %d\n"%len(meshpart["faces"]))
             #Weight Handling
-            BlenderImporterAPI.dbg.write("\tLoading Weights\n")
+            BlenderImporterAPI.dbg.write("\t\tLoading Weights\n")
             BlenderImporterAPI.writeWeights(blenderObject, meshpart, omitEmpty, context)
             #Normals Handling
-            BlenderImporterAPI.dbg.write("\tLoading Normals\n")
+            BlenderImporterAPI.dbg.write("\t\tLoading Normals\n")
             BlenderImporterAPI.setNormals(meshpart["normals"],blenderMesh)
             #Colour
             #Needs to enter object mode
             if meshpart["colour"]:
-                BlenderImporterAPI.dbg.write("\tLoading Colours\n")
+                BlenderImporterAPI.dbg.write("\t\tLoading Colours\n")
                 vcol_layer = blenderMesh.vertex_colors.new()
                 for l,col in zip(blenderMesh.loops, vcol_layer.data):
                     try:
@@ -149,11 +149,11 @@ class BlenderImporterAPI(ModellingAPI):
                     except:
                         col.color = BlenderImporterAPI.mod3ToBlenderColour(meshpart["colour"][l.vertex_index])[:3]
             #UVs
-            BlenderImporterAPI.dbg.write("\tLoading UVs\n")
+            BlenderImporterAPI.dbg.write("\t\tLoading UVs\n")
             for ix, uv_layer in enumerate(meshpart["uvs"]):
                 uvLayer = BlenderImporterAPI.createTextureLayer("UV%d"%ix, blenderMesh, uv_layer)#BlenderImporterAPI.uvFaceCombination(uv_layer, meshpart["faces"]))
                 uvLayer.active = ix == 0
-                BlenderImporterAPI.dbg.write("\tLayer Activated\n")
+                BlenderImporterAPI.dbg.write("\t\tLayer Activated\n")
             BlenderImporterAPI.dbg.write("\tMeshpart Loaded\n")
             blenderMesh.update()
             meshObjects.append(blenderObject)
@@ -338,16 +338,18 @@ class BlenderImporterAPI(ModellingAPI):
     
     @staticmethod
     def createMesh(name, meshpart):
-        BlenderImporterAPI.dbg.write("Geometry Construction\n")
+        BlenderImporterAPI.dbg.write("\t\t\tGeometry Construction\n")
         blenderMesh = bpy.data.meshes.new("%s LOD %d"%(name,meshpart["properties"]["lod"]))
-        BlenderImporterAPI.dbg.write("Geometry From Pydata\n")
-        BlenderImporterAPI.dbg.write("Vertex Count: %d\n"%len(meshpart['vertices']))
-        BlenderImporterAPI.dbg.write("Faces %d %d\n"%(min(map(lambda x: min(x,default=0),meshpart["faces"]),default=0), max(map(lambda x: max(x,default=0),meshpart["faces"]),default=0)))
+        BlenderImporterAPI.dbg.write("\t\t\t\tGeometry From Pydata\n")
+        BlenderImporterAPI.dbg.write("\t\t\t\tVertex Count: %d\n"%len(meshpart['vertices']))
+        BlenderImporterAPI.dbg.write("\t\t\t\tFaces %d %d\n"%(min(map(lambda x: min(x,default=0),meshpart["faces"]),default=0), max(map(lambda x: max(x,default=0),meshpart["faces"]),default=0)))
+        if max(map(lambda x: max(x,default=0),meshpart["faces"]),default=0) > len(meshpart["vertices"]):
+            meshpart["faces"] = [f for f in meshpart["faces"] if max(f) < len(meshpart["vertices"]) ]
         blenderMesh.from_pydata(meshpart["vertices"],[],meshpart["faces"])
-        BlenderImporterAPI.dbg.write("Pydata Loaded\n")
+        BlenderImporterAPI.dbg.write("\t\t\t\tPydata Loaded\n")
         blenderMesh.update()
-        blenderObject = bpy.data.objects.new("%s LOD %d"%(name,meshpart["properties"]["lod"]), blenderMesh)
-        BlenderImporterAPI.dbg.write("Geometry Link\n")
+        blenderObject = bpy.data.objects.new("\t\t\t\t%s LOD %d"%(name,meshpart["properties"]["lod"]), blenderMesh)
+        BlenderImporterAPI.dbg.write("\t\t\tGeometry Link\n")
         bpy.context.scene.objects.link(blenderObject)
         return blenderMesh, blenderObject
     
@@ -481,8 +483,20 @@ class BlenderImporterAPI(ModellingAPI):
             if groupIndex in boundGroups or not omitEmpty:
                 if armature and groupIndex in armature:
                     targetName = armature[groupIndex].name
-                    tindex = int(targetName.split(".")[1])
-                    groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
+                    BlenderImporterAPI.dbg.write(
+                        "\t\t\t\tGroup Data: [%i -> %i] - %s\n"%
+                        (groupIx,groupIndex,targetName)
+                        )
+                    try:
+                        tindex = int(targetName.split(".")[1])
+                        groupId = "%03d"%tindex if isinstance(groupIx, int) else "(%03d,%s)"%(tindex,groupIx[1])
+                    except:
+                        err = "\t\t\t\tNon-Numeric Group Name: [%i -> %i] - %s\n"%\
+                        (groupIx,groupIndex,targetName)
+                        #raise ValueError(err)
+                        BlenderImporterAPI.dbg.write(err)
+                        groupId = str(groupIx)
+                        continue
                 else:
                     groupId = str(groupIx)
                 groupName = "BoneFunction.%s"%groupId
