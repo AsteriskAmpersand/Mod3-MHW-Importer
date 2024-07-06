@@ -482,8 +482,8 @@ class BlenderImporterAPI(ModellingAPI):
                 if armature and groupIndex in armature:
                     targetName = armature[groupIndex].name
                     BlenderImporterAPI.dbg.write(
-                        "\t\t\t\tGroup Data: [%i -> %i] - %s\n"%
-                        (groupIx,groupIndex,targetName)
+                        "\t\t\t\tGroup Data: [%s -> %i] - %s\n"%
+                        (str(groupIx),groupIndex,targetName)
                         )
                     try:
                         tindex = int(targetName.split(".")[1])
