@@ -346,7 +346,7 @@ class BlenderImporterAPI(ModellingAPI):
         blenderMesh.from_pydata(meshpart["vertices"],[],meshpart["faces"])
         BlenderImporterAPI.dbg.write("\t\t\t\tPydata Loaded\n")
         blenderMesh.update()
-        blenderObject = bpy.data.objects.new("\t\t\t\t%s LOD %d"%(name,meshpart["properties"]["lod"]), blenderMesh)
+        blenderObject = bpy.data.objects.new("%s LOD %d"%(name,meshpart["properties"]["lod"]), blenderMesh)
         BlenderImporterAPI.dbg.write("\t\t\tGeometry Link\n")
         bpy.context.scene.objects.link(blenderObject)
         return blenderMesh, blenderObject
