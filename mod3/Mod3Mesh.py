@@ -194,12 +194,13 @@ class Mod3Mesh():
         return self.faceCount()*len(Mod3Face())+currentOffset
 
     @staticmethod
-    def splitWeightFunction(zippedWeightBones, slash=False):
+    def splitWeightFunction(zippedWeightBones, wc, slash=False):
         # Might Require Remembering Negative Weight Bones
         extension = (lambda x: "/%d" % x) if slash else (lambda x: "")
         currentBones = Counter()
         result = {}
-        for ix, (bone, weight) in enumerate(zippedWeightBones[:-1]):
+        lim = wc if wc < len(zippedWeightBones) else -1
+        for ix, (bone, weight) in enumerate(zippedWeightBones[:lim]):
             if bone in currentBones:
                 boneName, _ = (bone, "%d%s" % (
                     currentBones[bone], extension(ix))), currentBones.update([bone])
@@ -207,26 +208,29 @@ class Mod3Mesh():
                 currentBones[bone] = 1
                 boneName = (bone, "%d%s" % (0, extension(ix)))
             result[boneName] = max(weight, 0.0)
-        bone, weight = zippedWeightBones[-1]
-        boneName = (bone, "%d%s" % (-1, extension(ix+1)))
-        result[boneName] = max(weight, 0.0)
+        if lim == -1:
+            bone, weight = zippedWeightBones[-1]
+            boneName = (bone, "%d%s" % (-1, extension(ix+1)))
+            result[boneName] = max(weight, 0.0)
         return result
 
     @staticmethod
-    def slashWeightFunction(zippedWeightBones):
-        return Mod3Mesh.splitWeightFunction(zippedWeightBones, slash=True)
+    def slashWeightFunction(zippedWeightBones,wc):
+        return Mod3Mesh.splitWeightFunction(zippedWeightBones, wc, slash=True)
 
     @staticmethod
-    def unifiedWeightFunction(zippedWeightBones):
+    def unifiedWeightFunction(zippedWeightBones,wc):
         # if bone!=0])
-        keys = set([bone for bone, weight in zippedWeightBones])
-        return {key: max(min(sum([weight for bone, weight in zippedWeightBones if bone == key and weight >= 0]), 1.0), 0.0) for key in keys}
+        zwb = zippedWeightBones[:wc]
+        keys = set([bone for bone, weight in zwb])
+        return {key: max(min(sum([weight for bone, weight in zwb if bone == key and weight >= 0]), 1.0), 0.0) for key in keys}
 
     @staticmethod
-    def signedWeightFunction(zippedWeightBones):
+    def signedWeightFunction(zippedWeightBones,wc):
         # if bone!=0])
-        keys = set([bone for bone, weight in zippedWeightBones])
-        return {key: max(min(sum([weight for bone, weight in zippedWeightBones if bone == key]), 1.0), 0.0) for key in keys}
+        zwb = zippedWeightBones[:wc]
+        keys = set([bone for bone, weight in zwb])
+        return {key: max(min(sum([weight for bone, weight in zwb if bone == key]), 1.0), 0.0) for key in keys}
 
     @staticmethod
     def dictWeightAddition(baseDictionary, dictionary, ix):
@@ -243,15 +247,20 @@ class Mod3Mesh():
                                            3: Mod3Mesh.signedWeightFunction,
                                            }[x]
 
-    def decomposeVertices(self, vertices, splitWeights):
+    def decomposeVertices(self, vertices, splitWeights, dynamic):
+        weightCount = dynamic >> 3
         additionalFields = Mod3Vertex.blocklist[self.Header.blocktype]
         weightGroups = {}
         colour = []
         if "weights" in additionalFields:
             weightFunction = self.weightFunctionSelector(splitWeights)
             for ix, vertex in enumerate(vertices):
-                self.dictWeightAddition(weightGroups, weightFunction(
-                    list(zip(vertex.boneIds.boneIds, vertex.weights.weights))), ix)
+                wl = weightFunction(
+                    list(zip(vertex.boneIds.boneIds, vertex.weights.weights)),
+                    weightCount)
+                if sum(wl.values()) > 1.9: 
+                    raise ValueError(vertex,wl)
+                self.dictWeightAddition(weightGroups, wl, ix)
         if "colour" in additionalFields:
             colour = [vertex.colour for vertex in vertices]
         flat_vertices = [(vertex.position.x, vertex.position.y,
@@ -266,9 +275,10 @@ class Mod3Mesh():
 
     def traditionalMeshStructure(self, splitWeights):
         properties = self.Header.externalProperties()
+        dynamic = properties["weightDynamics"]
         faces = [[face.v1, face.v2, face.v3] for face in self.Faces]
         vertices, weightGroups, normals, tangents, uvs, colour = self.decomposeVertices(
-            self.Vertices, splitWeights)
+            self.Vertices, splitWeights,dynamic)
         return {"vertices": vertices, "properties": properties, "faces": faces,
                 "weightGroups": weightGroups, "normals": normals, "tangents": tangents,
                 "uvs": uvs, "colour": colour, "boundingBoxes": self.BoundingBoxes}
